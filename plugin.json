@@ -37,6 +37,14 @@
         "Sequencer",
         "Switch"
       ]
+    },
+    {
+      "slug": "PolygonalVCO",
+      "name": "PolygonalVCO",
+      "description": "Polygonal VCO",
+      "tags": [
+        "VCO"
+      ]
     }
   ]
 }
