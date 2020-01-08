@@ -14,7 +14,7 @@
   "changelogUrl": "",
   "modules": [
     {
-      "slug": "Sckitam2DRotation",
+      "slug": "2DRotation",
       "name": "2DRotation",
       "description": "2D Rotation of 2 input signals",
       "tags": [
@@ -22,7 +22,7 @@
       ]
     },
     {
-      "slug": "Sckitam2DAffine",
+      "slug": "2DAffine",
       "name": "2DAffine",
       "description": "2D Affine transform of 2 input signals",
       "tags": [
@@ -30,7 +30,7 @@
       ]
     },
     {
-      "slug": "SckitamMarkovSeq",
+      "slug": "MarkovSeq",
       "name": "MarkovSeq",
       "description": "Sequencer based on Markov chain",
       "tags": [
@@ -39,7 +39,7 @@
       ]
     },
     {
-      "slug": "SckitamPolygonalVCO",
+      "slug": "PolygonalVCO",
       "name": "PolygonalVCO",
       "description": "Polygonal VCO",
       "tags": [
