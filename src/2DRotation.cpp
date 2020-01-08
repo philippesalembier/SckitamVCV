@@ -105,7 +105,6 @@ struct _2DRotation : Module {
 	
 		outputs[OUT1_OUTPUT].setVoltage(y1+xoff_post);
 		outputs[OUT2_OUTPUT].setVoltage(y2+yoff_post);
-//		outputs[OUT2_OUTPUT].setVoltage(Theta);
 
 		//Light
 		lights[XOFF_PRE_LIGHT].setBrightness(std::abs(xoff_pre)/10);

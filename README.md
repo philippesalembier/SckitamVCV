@@ -5,6 +5,9 @@ This page provides some information about the following plugins:
 * **[2DRotation](#2DRotation)**: Utility, 2D Rotation of 2 input signals
 * **[2DAffine](#2DAffine)**: Utility, 2D Affine Transform of 2 intput signals
 * **[MarkovSeq](#MarkovSeq)**: Sequencer & Switch, 8 steps sequencers based on Markov chain
+* **[PolygonalVCO](#PolygonalVCO)**: VCO based on the paper: C. Hohnerlein, M. Rest, and J. O. Smith III, “Continuousorder polygonal waveform synthesis,” in Proceedings of theInternational Computer Music Conference, Utrecht, Netherlands, 2016.
+
+Note: Curently, all modules are monophonic. Polyphony will be considered for future releases. 
 
 ![](doc/SckitamVCV.png)
 
@@ -17,13 +20,16 @@ Out1 = cos(\theta) X - sin(\theta) Y
 
 Out2 = sin(\theta) X + cos(\theta) Y
 
-The \theta value defined by the knob can be CV modulated.
-The range of CV from +/-5V corresponds to +/-pi. The two sliders below \Delta X (\Delta Y) respectively define a horizontal (vertical) translation before and after the rotation. This allows one to precisely position the curve in the 2D space. 
+The **Angle** value in the range +/-pi is defined by the knob on the left. The angle can be CV modulated. The range of CV from +/-5V corresponds to +/-pi. 
+
+The **Velocity** of the rotation can be specified by the knob on the right. The range of rotation values has two modes. In the low (L) velocity mode, the velocity can reach +/-90 rotations per second. In the high (H) velocity mode, the rotation is specified by a 1V/Oct rule. If the knob is at 0, the velocity corresponds to 261.63 rotations per second (C4). Each increment of +/-1 will mutiply/divide the number of rotations per second by a factor of 2. The velocity parameter can also be CV modulated.  
+
+The two sliders below \Delta X (\Delta Y) respectively define a horizontal (vertical) translation before and after the rotation. This allows one to precisely position the curve in the 2D space if necessary. 
 
 ## 2DAffine <a id="2DAffine"> </a>
 ![](doc/2DAffine.png)
 
-Same as the [2DRotation](#2DRotation) with two additional shearing parameters, Sx and Sy. The shearing is applied before the rotation:
+Same as the [2DRotation](#2DRotation) without the velocity parameter but with two additional shearing parameters, Sx and Sy. The shearing is applied before the rotation:
 
 Out1 = cos(\theta) (X + Sx Y) - sin(\theta) (Sy X + Y)
 
@@ -52,5 +58,19 @@ The left part of the plugin defines to the values that are used to generate the 
 ![](doc/MarkovSeq_input.png)
 
 For each current state, the output is the sum of the incoming signal at the corresponding input port and the value of the knob (the transitions between values defined by the knobs can be smoothed by a Slew knob). The plugin can therefore be used as a sequencer, an 8 to 1 switch or a combination of both. The final output can also be scaled by a Gain parameter. Finally, the current state value is also available at one output port. 
+
+## PolygonalVCO <a id="PolygonalVCO"> </a>
+![](doc/PolygonalVCO.png)
+
+This is an oscillator based on the sampling of a 2D curve, here a polygon of order N, by a rotating phasor. It generates two output signals X and Y corresponding to the projection of the sampling on the horizontal and vertical axes. 
+
+The VCO was proposed in C. Hohnerlein, M. Rest, and J. O. Smith III, “Continuous order polygonal waveform synthesis,” in Proceedings of theInternational Computer Music Conference, Utrecht, Netherlands, 2016; and further discussed in C. Hohnerlein, M. Rest and J. Parker, "Efficient anti-aliasing of a complex polygonal oscillator", 20th International Conference on Digital Audio Effects (DAFx17), Edinburgh, Scotland, 2017.
+
+The oscillator has essentiually two parameters: 
+
+1. **N: Order of the polygon**. Its value ranges from 2.1 up to 20 and can be CV modulated. High values of N create polygons that converge towards a circle and the resulting wave forms are cosine (X) and sine (Y) waves. Lower N values generate signals with richer harmonic content. 
+2. **T: Teeth**: This parameter creates "teeth" shapes on the corners of the polygon. It increases the harmonic content of the signals.    
+
+In order to minimize, the CPU load no visual representaton of the curve is included in the module itself. However, as shown in the figure above, the use of an additional scope is highly recommended, at least for sound design.
 
  
