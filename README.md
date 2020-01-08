@@ -41,7 +41,7 @@ The shearing creates horizontal and vertical deformations of the curve in the 2D
 ![](doc/MarkovSeq.png)
 
 **8 steps sequencer or 8 to 1 switch**: This plugin defines 8 states and each incoming clock generates a **new state** which is defined by probabilities associated to the **current state**. This is essentially a first order 
-[Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) and allows one to define a graph of events with associated transition probabilities. The transition probabilites from each current state, $$S_0,...,S_7$$, are defined by the central part of the plugin. 
+[Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) and allows one to define a graph of events with associated transition probabilities. The transition probabilites from each current state, S0,...,S7, are defined by the central part of the plugin. 
 
 ![](doc/MarkovSeq_State_Transition.png)
 
@@ -66,9 +66,9 @@ This is an oscillator based on the sampling of a 2D curve, here a polygon of ord
 
 The VCO was proposed in C. Hohnerlein, M. Rest, and J. O. Smith III, “Continuous order polygonal waveform synthesis,” in Proceedings of theInternational Computer Music Conference, Utrecht, Netherlands, 2016; and further discussed in C. Hohnerlein, M. Rest and J. Parker, "Efficient anti-aliasing of a complex polygonal oscillator", 20th International Conference on Digital Audio Effects (DAFx17), Edinburgh, Scotland, 2017.
 
-The oscillator has essentiually two parameters: 
+The oscillator has essentially two parameters: 
 
-1. **N: Order of the polygon**. Its value ranges from 2.1 up to 20 and can be CV modulated. High values of N create polygons that converge towards a circle and the resulting wave forms are cosine (X) and sine (Y) waves. Lower N values generate signals with richer harmonic content. 
+1. **N: Order of the polygon**. Its value ranges from 2.1 up to 20 and can be CV modulated. High values of N create polygons that converge towards a circle and the resulting waveforms are cosine (X) and sine (Y) waves. Lower N values generate signals with richer harmonic content. 
 2. **T: Teeth**: This parameter creates "teeth" shapes on the corners of the polygon. These shapes increase the harmonic content of the signals.    
 
 In order to minimize, the CPU load no visual representaton of the curve is included in the module itself. However, as shown in the figure above, the use of an additional scope is highly recommended, at least for sound design.
