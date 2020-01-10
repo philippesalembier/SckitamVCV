@@ -11,7 +11,7 @@
   "manualUrl": "https://github.com/philippesalembier/SckitamVCV",
   "sourceUrl": "https://github.com/philippesalembier/SckitamVCV",
   "donateUrl": "https://PayPal.Me/Sckitam",
-  "changelogUrl": "",
+  "changelogUrl": "https://github.com/philippesalembier/SckitamVCV/blob/master/CHANGELOG.md",
   "modules": [
     {
       "slug": "2DRotation",
