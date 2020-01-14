@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   width="7"
+   height="7"
+   viewBox="0 0 7 7"
+   id="svg18"
+   sodipodi:docname="MarkovSeq-State-on.svg"
+   inkscape:version="0.92.2 5c3e80d, 2017-08-06">
+  <metadata
+     id="metadata24">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs22" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1290"
+     inkscape:window-height="1000"
+     id="namedview20"
+     showgrid="false"
+     inkscape:zoom="26.222222"
+     inkscape:cx="10.863083"
+     inkscape:cy="2.0410488"
+     inkscape:window-x="477"
+     inkscape:window-y="244"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg18" />
+  <circle
+     style="opacity:1;fill:#5a5a5a;fill-opacity:1;stroke:#969696;stroke-width:1.07759273;stroke-miterlimit:14.80000019;stroke-dasharray:none;stroke-dashoffset:0.8570897;stroke-opacity:1"
+     id="path818"
+     cy="3.5"
+     cx="3.5"
+     r="2.9612036" />
+  <g
+     aria-label="+"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:condensed;font-size:8px;line-height:1.25;font-family:'Arial Narrow';-inkscape-font-specification:'Arial Narrow, Condensed';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none"
+     id="text840">
+    <path
+       d="M 3.2002783,5.3877783 V 3.8174658 H 1.9229345 v -0.65625 H 3.2002783 V 1.602622 h 0.546875 V 3.1612158 H 5.024497 v 0.65625 H 3.7471533 v 1.5703125 z"
+       style=""
+       id="path2318" />
+  </g>
+</svg>

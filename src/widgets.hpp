@@ -15,3 +15,5 @@ struct ScButton : ParamWidget {
 };
 
 struct ScButton1 : ScButton {ScButton1(); };
+struct ScButtonMinus : ScButton {ScButtonMinus(); };
+struct ScButtonPlus : ScButton {ScButtonPlus(); };

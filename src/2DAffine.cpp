@@ -92,8 +92,14 @@ struct _2DAffine : Module {
 		xoff_post = params[XOFF_POST_PARAM].getValue();
 		yoff_post = params[YOFF_POST_PARAM].getValue();
 	
-		outputs[OUT1_OUTPUT].setVoltage(y1+xoff_post);
-		outputs[OUT2_OUTPUT].setVoltage(y2+yoff_post);
+		//outputs[OUT1_OUTPUT].setVoltage(clamp(y1+xoff_post,-10.f,10.f));
+		//outputs[OUT2_OUTPUT].setVoltage(clamp(y2+yoff_post,-10.f,10.f));
+		// Parabolic saturation
+		y1 = (y1 + xoff_post)/10.f;
+		y2 = (y2 + yoff_post)/10.f;
+		outputs[OUT1_OUTPUT].setVoltage(10.f * clamp(y1,-2.f,2.f) * (1.f-0.25*std::abs(y1)));
+		outputs[OUT2_OUTPUT].setVoltage(10.f * clamp(y2,-2.f,2.f) * (1.f-0.25*std::abs(y2)));
+
 
 		//Light
 		lights[XOFF_PRE_LIGHT].setBrightness(std::abs(xoff_pre)/10);

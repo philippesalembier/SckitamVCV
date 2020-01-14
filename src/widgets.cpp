@@ -34,4 +34,5 @@ void ScButton::onDragEnd(const event::DragEnd& e) { _svgWidget->setSvg(_frames[0
 
 
 ScButton1::ScButton1() : ScButton("res/button1-off.svg", "res/button1-on.svg") { }
-
+ScButtonMinus::ScButtonMinus() : ScButton("res/ButtonMinus-off.svg", "res/ButtonMinus-on.svg") { }
+ScButtonPlus::ScButtonPlus() : ScButton("res/ButtonPlus-off.svg", "res/ButtonPlus-on.svg") { }

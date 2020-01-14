@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-
+#include "widgets.hpp"
 
 struct MarkovSeq : Module {
 	enum ParamIds {
@@ -16,6 +16,10 @@ struct MarkovSeq : Module {
 		ENUMS(P5_PARAMS, 8),
 		ENUMS(P6_PARAMS, 8),
 		ENUMS(P7_PARAMS, 8),
+		ENUMS(TO_S_ON_PARAMS, 	8),
+		ENUMS(TO_S_OFF_PARAMS, 	8),
+		ENUMS(FROM_S_ON_PARAMS,	8),
+		ENUMS(FROM_S_OFF_PARAMS,8),
 		NUM_PARAMS
 	};
 	enum InputIds {
@@ -27,6 +31,7 @@ struct MarkovSeq : Module {
 	enum OutputIds {
 		OUT_OUTPUT,
 		STATE_OUTPUT,
+		ENUMS(TRIGGER_STATE, 8),
 		NUM_OUTPUTS
 	};
 	enum LightIds {
@@ -36,6 +41,13 @@ struct MarkovSeq : Module {
 		NUM_LIGHTS
 	};
 
+	enum ZeroSum {
+		DELTA,
+		UNIFORM,
+		NUM_ZERO_SUM
+	};
+	ZeroSum zeroSum;
+	
 	int 	lastChannels = 1;
 	float 	lastGains[16] = {};
 	int	CurrentState = 0, NextState = 0;
@@ -43,7 +55,12 @@ struct MarkovSeq : Module {
 	float 	Prob[8] = {0.f}, SumP = 0.f, pval = 0.f;
 	dsp::BooleanTrigger stepTrigger, state0Trigger, state1Trigger, state2Trigger, state3Trigger, state4Trigger, state5Trigger, state6Trigger, state7Trigger;
 	dsp::SlewLimiter clickFilters[8];
-
+	dsp::PulseGenerator pulseGenerators[8];
+	
+	void onReset() override {
+		zeroSum = DELTA;
+	}
+	
 	MarkovSeq() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(STEP_PARAM,  0.f, 10.f, 0.f, "Manual Step");
@@ -54,6 +71,12 @@ struct MarkovSeq : Module {
 		for (int i = 0; i < 8; i++)
 			configParam(FORCE_PARAMS + i, 0.f, 10.f, 0.f, string::f("Force State %d", i));
 		for (int i = 0; i < 8; i++){
+			configParam(TO_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition to S%d", i));
+			configParam(TO_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition to S%d to 0.5", i));
+			configParam(FROM_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition from S%d", i));
+			configParam(FROM_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition from S%d to 0.5", i));
+		}	
+		for (int i = 0; i < 8; i++) {
 			configParam(P0_PARAMS + i, 0.f, 1.f, 0.f, string::f("P0->%d", i));
 			configParam(P1_PARAMS + i, 0.f, 1.f, 0.f, string::f("P1->%d", i));
 			configParam(P2_PARAMS + i, 0.f, 1.f, 0.f, string::f("P2->%d", i));
@@ -63,10 +86,21 @@ struct MarkovSeq : Module {
 			configParam(P6_PARAMS + i, 0.f, 1.f, 0.f, string::f("P6->%d", i));
 			configParam(P7_PARAMS + i, 0.f, 1.f, 0.f, string::f("P7->%d", i));
 		}
+		// Intialize such that the sequencer moves as a regular sequencer in the forward direction
+		configParam(P0_PARAMS + 1, 0.f, 1.f, 0.5f, string::f("P0->%d", 1));
+		configParam(P1_PARAMS + 2, 0.f, 1.f, 0.5f, string::f("P0->%d", 2));
+		configParam(P2_PARAMS + 3, 0.f, 1.f, 0.5f, string::f("P0->%d", 3));
+		configParam(P3_PARAMS + 4, 0.f, 1.f, 0.5f, string::f("P0->%d", 4));
+		configParam(P4_PARAMS + 5, 0.f, 1.f, 0.5f, string::f("P0->%d", 5));
+		configParam(P5_PARAMS + 6, 0.f, 1.f, 0.5f, string::f("P0->%d", 6));
+		configParam(P6_PARAMS + 7, 0.f, 1.f, 0.5f, string::f("P0->%d", 7));
+		configParam(P7_PARAMS + 0, 0.f, 1.f, 0.5f, string::f("P0->%d", 0));
+
 		for (int i = 0; i < 8; i++) {
 			clickFilters[i].rise = 400.f; // Hz
 			clickFilters[i].fall = 400.f; // Hz
 		}
+		onReset();
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -119,6 +153,88 @@ struct MarkovSeq : Module {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
 
+		// Update probabilites if necessary
+		for (int i = 0; i < 8; i++) { 
+			if (params[TO_S_OFF_PARAMS + i].getValue() > 0) {
+				params[TO_S_OFF_PARAMS + i].setValue(0.f);
+				params[P0_PARAMS + i].setValue(0.f);
+				params[P1_PARAMS + i].setValue(0.f);
+				params[P2_PARAMS + i].setValue(0.f);
+				params[P3_PARAMS + i].setValue(0.f);
+				params[P4_PARAMS + i].setValue(0.f);
+				params[P5_PARAMS + i].setValue(0.f);
+				params[P6_PARAMS + i].setValue(0.f);
+				params[P7_PARAMS + i].setValue(0.f);
+			}
+			if (params[TO_S_ON_PARAMS + i].getValue() > 0) {
+				params[TO_S_ON_PARAMS + i].setValue(0.f);
+				params[P0_PARAMS + i].setValue(0.5f);
+				params[P1_PARAMS + i].setValue(0.5f);
+				params[P2_PARAMS + i].setValue(0.5f);
+				params[P3_PARAMS + i].setValue(0.5f);
+				params[P4_PARAMS + i].setValue(0.5f);
+				params[P5_PARAMS + i].setValue(0.5f);
+				params[P6_PARAMS + i].setValue(0.5f);
+				params[P7_PARAMS + i].setValue(0.5f);
+			}
+			if (params[FROM_S_OFF_PARAMS + i].getValue() > 0) {
+				params[FROM_S_OFF_PARAMS + i].setValue(0.f);
+				if (i == 0){
+					for (int j = 0; j < 8; j++) { params[P0_PARAMS + j].setValue(0.f);}
+				}
+				else if (i == 1){	
+					for (int j = 0; j < 8; j++) { params[P1_PARAMS + j].setValue(0.f);}
+				}
+				else if (i == 2){	
+					for (int j = 0; j < 8; j++) { params[P2_PARAMS + j].setValue(0.f);}
+				}
+				else if (i == 3){	
+					for (int j = 0; j < 8; j++) { params[P3_PARAMS + j].setValue(0.f);}
+				}
+				else if (i == 4){	
+					for (int j = 0; j < 8; j++) { params[P4_PARAMS + j].setValue(0.f);}
+				}
+				else if (i == 5){	
+					for (int j = 0; j < 8; j++) { params[P5_PARAMS + j].setValue(0.f);}
+				}
+				else if (i == 6){	
+					for (int j = 0; j < 8; j++) { params[P6_PARAMS + j].setValue(0.f);}
+				}
+				else if (i == 7){	
+					for (int j = 0; j < 8; j++) { params[P7_PARAMS + j].setValue(0.f);}
+				}
+			}
+			if (params[FROM_S_ON_PARAMS + i].getValue() > 0) {
+				params[FROM_S_ON_PARAMS + i].setValue(0.f);
+				if (i == 0){
+					for (int j = 0; j < 8; j++) { params[P0_PARAMS + j].setValue(0.5f);}
+				}
+				else if (i == 1){	
+					for (int j = 0; j < 8; j++) { params[P1_PARAMS + j].setValue(0.5f);}
+				}
+				else if (i == 2){	
+					for (int j = 0; j < 8; j++) { params[P2_PARAMS + j].setValue(0.5f);}
+				}
+				else if (i == 3){	
+					for (int j = 0; j < 8; j++) { params[P3_PARAMS + j].setValue(0.5f);}
+				}
+				else if (i == 4){	
+					for (int j = 0; j < 8; j++) { params[P4_PARAMS + j].setValue(0.5f);}
+				}
+				else if (i == 5){	
+					for (int j = 0; j < 8; j++) { params[P5_PARAMS + j].setValue(0.5f);}
+				}
+				else if (i == 6){	
+					for (int j = 0; j < 8; j++) { params[P6_PARAMS + j].setValue(0.5f);}
+				}
+				else if (i == 7){	
+					for (int j = 0; j < 8; j++) { params[P7_PARAMS + j].setValue(0.5f);}
+				}
+			}
+
+		}
+
+		// Process new clock event
 		bool step = (params[STEP_PARAM].getValue() + inputs[CLOCK_INPUT].getVoltage()) > 1.0f;
 		lights[STEP_PARAM].setBrightness(step);
 
@@ -127,9 +243,10 @@ struct MarkovSeq : Module {
 			lights[CUR_LIGHTS  + CurrentState].setBrightness(0.f);
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
 
-			// Define new CurrentState
+			// Define new CurrentState & Generate a trigger
 			CurrentState = NextState;
-			
+			pulseGenerators[CurrentState].trigger(1e-3f);
+		
 			// Compute the transition probabilities
 			switch(CurrentState){
 				case 0:	
@@ -218,7 +335,14 @@ struct MarkovSeq : Module {
 				for (int i=0; i<8; i++) Prob[i] = Prob[i] / SumP; 
 			}
 			else {
-				for (int i=0; i<8; i++) Prob[i] = 1.0f/8.0f; 
+				//DEBUG("zeroSum %d", zeroSum);
+				// Depending on the context menu, define the df as a delta or as uniform 
+				if (zeroSum == 0) {
+					Prob[CurrentState]=1.f;
+				}
+				else {
+					for (int i=0; i<8; i++) Prob[i] = 1.0f/8.0f; 
+				}
 			}
 
 			// Define new NextState
@@ -251,6 +375,7 @@ struct MarkovSeq : Module {
            		slewout = slewout - (1.0 - slewval);
             		if (slewout < valout1){ slewout = valout1;}
 		}
+		
 		// Prevent clicks on inputs
 		valout2 = 0;
 		float G0 = 0;
@@ -265,11 +390,33 @@ struct MarkovSeq : Module {
 
 		Gain = params[SCALE_PARAM].getValue();
 		valout = clamp( (slewout+valout2) * Gain, -10.f, 10.f);
+		// Output values 
 		outputs[OUT_OUTPUT].setVoltage(valout);
 
 		outputs[STATE_OUTPUT].setVoltage(CurrentState);	
 
+		bool pulse = pulseGenerators[CurrentState].process(args.sampleTime);
+		outputs[TRIGGER_STATE + CurrentState].setVoltage(pulse ? 10.f : 0.f);
 	}
+
+	void setZeroSum(ZeroSum zeroSum) {
+		if (zeroSum == this->zeroSum)
+			return;
+		this->zeroSum = zeroSum;
+	}
+
+	json_t* dataToJson() override {
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "zeroSum", json_integer(zeroSum));
+		return rootJ;
+	}
+
+	void dataFromJson(json_t* rootJ) override {
+		json_t* zeroSumJ = json_object_get(rootJ, "zeroSum");
+		if (zeroSumJ)
+			zeroSum = (ZeroSum) json_integer_value(zeroSumJ);
+	}
+
 };
 
 struct MarkovSeqVUKnob : SliderKnob {
@@ -334,6 +481,37 @@ struct MarkovSeqVUKnob : SliderKnob {
 	}
 };
 
+struct ZeroSumValueItem : MenuItem {
+	MarkovSeq* module;
+	MarkovSeq::ZeroSum zeroSum;
+	void onAction(const event::Action& e) override {
+		module->setZeroSum(zeroSum);
+	}
+};
+
+
+struct ZeroSumItem : MenuItem {
+	MarkovSeq* module;
+	Menu* createChildMenu() override {
+		Menu* menu = new Menu;
+		std::vector<std::string> zeroSumNames = {
+			"Remain on the current state",
+			"Transitions to all states are equiprobable",
+		};
+		for (int i = 0; i < MarkovSeq::NUM_ZERO_SUM; i++) {
+			MarkovSeq::ZeroSum zeroSum = (MarkovSeq::ZeroSum) i;
+			ZeroSumValueItem* item = new ZeroSumValueItem;
+			item->text = zeroSumNames[i];
+			item->rightText = CHECKMARK(module->zeroSum == zeroSum);
+			item->module = module;
+			item->zeroSum = zeroSum;
+			menu->addChild(item);
+		}
+		return menu;
+	}
+};
+
+
 struct MarkovSeqWidget : ModuleWidget {
 	MarkovSeqWidget(MarkovSeq* module) {
 		setModule(module);
@@ -344,9 +522,7 @@ struct MarkovSeqWidget : ModuleWidget {
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		//addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(32.697, 9.782)), module, MarkovSeq::STEP_PARAM));
 		addParam(createParamCentered<LEDBezel>(mm2px(Vec(27.697, 9.782)), module,  MarkovSeq::STEP_PARAM));
-
 		
 		addParam(createParamCentered<RoundSmallBlackKnob>(mm2px(Vec(20.811, 22.603)), module, MarkovSeq::VAL_PARAMS + 0));
 		addParam(createParamCentered<RoundSmallBlackKnob>(mm2px(Vec(20.811, 36.238)), module, MarkovSeq::VAL_PARAMS + 1));	
@@ -366,39 +542,23 @@ struct MarkovSeqWidget : ModuleWidget {
 		addParam(createParamCentered<TL1105>(mm2px(Vec(129.45, 109.611)), module, MarkovSeq::FORCE_PARAMS + 6));
 		addParam(createParamCentered<TL1105>(mm2px(Vec(129.45, 123.246)), module, MarkovSeq::FORCE_PARAMS + 7));
 		
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(17.699, 19.34)), module, MarkovSeq::P11_PARAM));
 		MarkovSeqVUKnob* levelParamP11 = createParam<MarkovSeqVUKnob>(mm2px(Vec(27.699, 19.34)), module, MarkovSeq::P0_PARAMS + 0);
 		levelParamP11->module = module; addParam(levelParamP11);
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(22.708, 19.34)), module, MarkovSeq::P12_PARAM));
 		MarkovSeqVUKnob* levelParamP12 = createParam<MarkovSeqVUKnob>(mm2px(Vec(32.708, 19.34)), module, MarkovSeq::P0_PARAMS + 1);
 		levelParamP12->module = module; addParam(levelParamP12);
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(27.716, 19.34)), module, MarkovSeq::P13_PARAM));
 		MarkovSeqVUKnob* levelParamP13 = createParam<MarkovSeqVUKnob>(mm2px(Vec(37.716, 19.34)), module, MarkovSeq::P0_PARAMS + 2);
 		levelParamP13->module = module; addParam(levelParamP13);
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(32.725, 19.34)), module, MarkovSeq::P14_PARAM));
 		MarkovSeqVUKnob* levelParamP14 = createParam<MarkovSeqVUKnob>(mm2px(Vec(42.725, 19.34)), module, MarkovSeq::P0_PARAMS + 3);
 		levelParamP14->module = module; addParam(levelParamP14);
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(37.733, 19.34)), module, MarkovSeq::P15_PARAM));
 		MarkovSeqVUKnob* levelParamP15 = createParam<MarkovSeqVUKnob>(mm2px(Vec(47.733, 19.34)), module, MarkovSeq::P0_PARAMS + 4);
 		levelParamP15->module = module; addParam(levelParamP15);
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(42.742, 19.34)), module, MarkovSeq::P16_PARAM));
 		MarkovSeqVUKnob* levelParamP16 = createParam<MarkovSeqVUKnob>(mm2px(Vec(52.742, 19.34)), module, MarkovSeq::P0_PARAMS + 5);
 		levelParamP16->module = module; addParam(levelParamP16);
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(47.75, 19.34)), module, MarkovSeq::P17_PARAM));
 		MarkovSeqVUKnob* levelParamP17 = createParam<MarkovSeqVUKnob>(mm2px(Vec(57.75, 19.34)), module, MarkovSeq::P0_PARAMS + 6);
 		levelParamP17->module = module; addParam(levelParamP17);
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(52.759, 19.34)), module, MarkovSeq::P18_PARAM));
 		MarkovSeqVUKnob* levelParamP18 = createParam<MarkovSeqVUKnob>(mm2px(Vec(62.759, 19.34)), module, MarkovSeq::P0_PARAMS + 7);
 		levelParamP18->module = module; addParam(levelParamP18);
 
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(59.965, 19.34)), module, MarkovSeq::P21_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(64.973, 19.34)), module, MarkovSeq::P22_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(69.982, 19.34)), module, MarkovSeq::P23_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(74.99, 19.34)), module, MarkovSeq::P24_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(79.999, 19.34)), module, MarkovSeq::P25_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(85.007, 19.34)), module, MarkovSeq::P26_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(90.016, 19.34)), module, MarkovSeq::P27_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(95.024, 19.34)), module, MarkovSeq::P28_PARAM));
 		MarkovSeqVUKnob* levelParamP21 = createParam<MarkovSeqVUKnob>(mm2px(Vec(69.965, 19.34)), module, MarkovSeq::P1_PARAMS + 0);
 		levelParamP21->module = module; addParam(levelParamP21);
 		MarkovSeqVUKnob* levelParamP22 = createParam<MarkovSeqVUKnob>(mm2px(Vec(74.973, 19.34)), module, MarkovSeq::P1_PARAMS + 1);
@@ -416,14 +576,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		MarkovSeqVUKnob* levelParamP28 = createParam<MarkovSeqVUKnob>(mm2px(Vec(105.024, 19.34)), module, MarkovSeq::P1_PARAMS + 7);
 		levelParamP28->module = module; addParam(levelParamP28);
 
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(17.699, 46.592)), module, MarkovSeq::P31_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(22.708, 46.592)), module, MarkovSeq::P32_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(27.716, 46.592)), module, MarkovSeq::P33_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(32.725, 46.592)), module, MarkovSeq::P34_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(37.733, 46.592)), module, MarkovSeq::P35_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(42.742, 46.592)), module, MarkovSeq::P36_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(47.75, 46.592)), module, MarkovSeq::P37_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(52.759, 46.592)), module, MarkovSeq::P38_PARAM));
 		MarkovSeqVUKnob* levelParamP31 = createParam<MarkovSeqVUKnob>(mm2px(Vec(27.699, 46.592)), module, MarkovSeq::P2_PARAMS + 0);
 		levelParamP31->module = module; addParam(levelParamP31);
 		MarkovSeqVUKnob* levelParamP32 = createParam<MarkovSeqVUKnob>(mm2px(Vec(32.708, 46.592)), module, MarkovSeq::P2_PARAMS + 1);
@@ -441,14 +593,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		MarkovSeqVUKnob* levelParamP38 = createParam<MarkovSeqVUKnob>(mm2px(Vec(62.759, 46.592)), module, MarkovSeq::P2_PARAMS + 7);
 		levelParamP38->module = module; addParam(levelParamP38);
 
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(59.965, 46.592)), module, MarkovSeq::P41_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(64.973, 46.592)), module, MarkovSeq::P42_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(69.982, 46.592)), module, MarkovSeq::P43_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(74.99, 46.592)), module, MarkovSeq::P44_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(79.999, 46.592)), module, MarkovSeq::P45_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(85.007, 46.592)), module, MarkovSeq::P46_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(90.016, 46.592)), module, MarkovSeq::P47_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(95.024, 46.592)), module, MarkovSeq::P48_PARAM));
 		MarkovSeqVUKnob* levelParamP41 = createParam<MarkovSeqVUKnob>(mm2px(Vec(69.965, 46.592)), module, MarkovSeq::P3_PARAMS + 0);
 		levelParamP41->module = module; addParam(levelParamP41);
 		MarkovSeqVUKnob* levelParamP42 = createParam<MarkovSeqVUKnob>(mm2px(Vec(74.973, 46.592)), module, MarkovSeq::P3_PARAMS + 1);
@@ -466,14 +610,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		MarkovSeqVUKnob* levelParamP48 = createParam<MarkovSeqVUKnob>(mm2px(Vec(105.024, 46.592)), module, MarkovSeq::P3_PARAMS + 7);
 		levelParamP48->module = module; addParam(levelParamP48);
 
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(17.699, 73.845)), module, MarkovSeq::P51_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(22.708, 73.845)), module, MarkovSeq::P52_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(27.716, 73.845)), module, MarkovSeq::P53_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(32.725, 73.845)), module, MarkovSeq::P54_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(37.733, 73.845)), module, MarkovSeq::P55_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(42.742, 73.845)), module, MarkovSeq::P56_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(47.75, 73.845)), module, MarkovSeq::P57_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(52.759, 73.845)), module, MarkovSeq::P58_PARAM));
 		MarkovSeqVUKnob* levelParamP51 = createParam<MarkovSeqVUKnob>(mm2px(Vec(27.699, 73.845)), module, MarkovSeq::P4_PARAMS + 0);
 		levelParamP51->module = module; addParam(levelParamP51);
 		MarkovSeqVUKnob* levelParamP52 = createParam<MarkovSeqVUKnob>(mm2px(Vec(32.708, 73.845)), module, MarkovSeq::P4_PARAMS + 1);
@@ -491,14 +627,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		MarkovSeqVUKnob* levelParamP58 = createParam<MarkovSeqVUKnob>(mm2px(Vec(62.759, 73.845)), module, MarkovSeq::P4_PARAMS + 7);
 		levelParamP58->module = module; addParam(levelParamP58);
 
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(59.965, 73.845)), module, MarkovSeq::P61_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(64.973, 73.845)), module, MarkovSeq::P62_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(69.982, 73.845)), module, MarkovSeq::P63_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(74.99, 73.845)), module, MarkovSeq::P64_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(79.999, 73.845)), module, MarkovSeq::P65_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(85.007, 73.845)), module, MarkovSeq::P66_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(90.016, 73.845)), module, MarkovSeq::P67_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(95.024, 73.845)), module, MarkovSeq::P68_PARAM));
 		MarkovSeqVUKnob* levelParamP61 = createParam<MarkovSeqVUKnob>(mm2px(Vec(69.965, 73.845)), module, MarkovSeq::P5_PARAMS + 0);
 		levelParamP61->module = module; addParam(levelParamP61);
 		MarkovSeqVUKnob* levelParamP62 = createParam<MarkovSeqVUKnob>(mm2px(Vec(74.973, 73.845)), module, MarkovSeq::P5_PARAMS + 1);
@@ -516,14 +644,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		MarkovSeqVUKnob* levelParamP68 = createParam<MarkovSeqVUKnob>(mm2px(Vec(105.024, 73.845)), module, MarkovSeq::P5_PARAMS + 7);
 		levelParamP68->module = module; addParam(levelParamP68);
 
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(17.699, 101.098)), module, MarkovSeq::P71_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(22.708, 101.098)), module, MarkovSeq::P72_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(27.716, 101.098)), module, MarkovSeq::P73_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(32.725, 101.098)), module, MarkovSeq::P74_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(37.733, 101.098)), module, MarkovSeq::P75_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(42.742, 101.098)), module, MarkovSeq::P76_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(47.75, 101.098)), module, MarkovSeq::P77_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(52.759, 101.098)), module, MarkovSeq::P78_PARAM));
 		MarkovSeqVUKnob* levelParamP71 = createParam<MarkovSeqVUKnob>(mm2px(Vec(27.699, 101.098)), module, MarkovSeq::P6_PARAMS + 0);
 		levelParamP71->module = module; addParam(levelParamP71);
 		MarkovSeqVUKnob* levelParamP72 = createParam<MarkovSeqVUKnob>(mm2px(Vec(32.708, 101.098)), module, MarkovSeq::P6_PARAMS + 1);
@@ -541,14 +661,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		MarkovSeqVUKnob* levelParamP78 = createParam<MarkovSeqVUKnob>(mm2px(Vec(62.759, 101.098)), module, MarkovSeq::P6_PARAMS + 7);
 		levelParamP78->module = module; addParam(levelParamP78);
 
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(59.965, 101.098)), module, MarkovSeq::P81_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(64.973, 101.098)), module, MarkovSeq::P82_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(69.982, 101.098)), module, MarkovSeq::P83_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(74.99, 101.098)), module, MarkovSeq::P84_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(79.999, 101.098)), module, MarkovSeq::P85_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(85.007, 101.098)), module, MarkovSeq::P86_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(90.016, 101.098)), module, MarkovSeq::P87_PARAM));
-		//addParam(createParam<RoundBlackKnob>(mm2px(Vec(95.024, 101.098)), module, MarkovSeq::P88_PARAM));
 		MarkovSeqVUKnob* levelParamP81 = createParam<MarkovSeqVUKnob>(mm2px(Vec(69.965, 101.098)), module, MarkovSeq::P7_PARAMS + 0);
 		levelParamP81->module = module; addParam(levelParamP81);
 		MarkovSeqVUKnob* levelParamP82 = createParam<MarkovSeqVUKnob>(mm2px(Vec(74.973, 101.098)), module, MarkovSeq::P7_PARAMS + 1);
@@ -565,6 +677,40 @@ struct MarkovSeqWidget : ModuleWidget {
 		levelParamP87->module = module; addParam(levelParamP87);
 		MarkovSeqVUKnob* levelParamP88 = createParam<MarkovSeqVUKnob>(mm2px(Vec(105.024, 101.098)), module, MarkovSeq::P7_PARAMS + 7);
 		levelParamP88->module = module; addParam(levelParamP88);
+
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(35.0, 16.5)), module, MarkovSeq::TO_S_OFF_PARAMS + 0));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(38.0, 16.5)), module, MarkovSeq::TO_S_ON_PARAMS + 0));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(77.5, 16.5)), module, MarkovSeq::TO_S_OFF_PARAMS + 1));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(80.5, 16.5)), module, MarkovSeq::TO_S_ON_PARAMS + 1));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(35.0, 43.6)), module, MarkovSeq::TO_S_OFF_PARAMS + 2));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(38.0, 43.6)), module, MarkovSeq::TO_S_ON_PARAMS + 2));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(77.5, 43.6)), module, MarkovSeq::TO_S_OFF_PARAMS + 3));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(80.5, 43.6)), module, MarkovSeq::TO_S_ON_PARAMS + 3));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(35.0, 70.9)), module, MarkovSeq::TO_S_OFF_PARAMS + 4));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(38.0, 70.9)), module, MarkovSeq::TO_S_ON_PARAMS + 4));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(77.5, 70.9)), module, MarkovSeq::TO_S_OFF_PARAMS + 5));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(80.5, 70.9)), module, MarkovSeq::TO_S_ON_PARAMS + 5));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(35.0, 98.3)), module, MarkovSeq::TO_S_OFF_PARAMS + 6));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(38.0, 98.3)), module, MarkovSeq::TO_S_ON_PARAMS + 6));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(77.5, 98.3)), module, MarkovSeq::TO_S_OFF_PARAMS + 7));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(80.5, 98.3)), module, MarkovSeq::TO_S_ON_PARAMS + 7));
+
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(54.5, 16.5)), module, MarkovSeq::FROM_S_OFF_PARAMS + 0));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(57.5, 16.5)), module, MarkovSeq::FROM_S_ON_PARAMS + 0));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(97.0, 16.5)), module, MarkovSeq::FROM_S_OFF_PARAMS + 1));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(100.0, 16.5)), module, MarkovSeq::FROM_S_ON_PARAMS + 1));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(54.5, 43.6)), module, MarkovSeq::FROM_S_OFF_PARAMS + 2));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(57.5, 43.6)), module, MarkovSeq::FROM_S_ON_PARAMS + 2));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(97.0, 43.6)), module, MarkovSeq::FROM_S_OFF_PARAMS + 3));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(100.0, 43.6)), module, MarkovSeq::FROM_S_ON_PARAMS + 3));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(54.5, 70.9)), module, MarkovSeq::FROM_S_OFF_PARAMS + 4));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(57.5, 70.9)), module, MarkovSeq::FROM_S_ON_PARAMS + 4));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(97.0, 70.9)), module, MarkovSeq::FROM_S_OFF_PARAMS + 5));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(100.0, 70.9)), module, MarkovSeq::FROM_S_ON_PARAMS + 5));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(54.5, 98.3)), module, MarkovSeq::FROM_S_OFF_PARAMS + 6));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(57.5, 98.3)), module, MarkovSeq::FROM_S_ON_PARAMS + 6));
+		addParam(createParam<ScButtonMinus>(mm2px(Vec(97.0, 98.3)), module, MarkovSeq::FROM_S_OFF_PARAMS + 7));
+		addParam(createParam<ScButtonPlus>(mm2px(Vec(100.0, 98.3)), module, MarkovSeq::FROM_S_ON_PARAMS + 7));
 
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(8.305, 9.782)), module, MarkovSeq::CLOCK_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(8.305, 22.363)), module, MarkovSeq::IN_INPUTS + 0));
@@ -590,6 +736,15 @@ struct MarkovSeqWidget : ModuleWidget {
 		addParam(createParamCentered<Trimpot>(mm2px(Vec(96.697, 9.782)), module,  MarkovSeq::SCALE_PARAM));
 		addParam(createParamCentered<Trimpot>(mm2px(Vec(44.20, 9.782)), module,  MarkovSeq::SLEW_PARAM));
 
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 22.363)), module, MarkovSeq::TRIGGER_STATE + 0));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 36.032)), module, MarkovSeq::TRIGGER_STATE + 1));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 49.701)), module, MarkovSeq::TRIGGER_STATE + 2));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 63.37)),  module, MarkovSeq::TRIGGER_STATE + 3));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 77.039)), module, MarkovSeq::TRIGGER_STATE + 4));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 90.708)), module, MarkovSeq::TRIGGER_STATE + 5));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 104.377)), module, MarkovSeq::TRIGGER_STATE + 6));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(146.2, 118.046)), module, MarkovSeq::TRIGGER_STATE + 7));
+		
 		addChild(createLightCentered<LEDBezelLight<GreenLight>>(mm2px(Vec(27.697, 9.782)), module, MarkovSeq::STEP_LIGHT));
 		addChild(createLightCentered<LargeLight<RedLight>>(mm2px(Vec(117.15, 22.521)), module, MarkovSeq::CUR_LIGHTS + 0));
 		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(125.45, 22.521)), module, MarkovSeq::NEXT_LIGHTS + 0));
@@ -608,6 +763,19 @@ struct MarkovSeqWidget : ModuleWidget {
 		addChild(createLightCentered<LargeLight<RedLight>>(mm2px(Vec(117.15, 118.19)), module, MarkovSeq::CUR_LIGHTS + 7));
 		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(125.45, 118.19)), module, MarkovSeq::NEXT_LIGHTS + 7));
 	}
+
+	void appendContextMenu(Menu* menu) override {
+		MarkovSeq* module = dynamic_cast<MarkovSeq*>(this->module);
+
+		menu->addChild(new MenuEntry);
+
+		ZeroSumItem* zeroSumItem = new ZeroSumItem;
+		zeroSumItem->text = "If all probabilities are zero....";
+		zeroSumItem->rightText = RIGHT_ARROW;
+		zeroSumItem->module = module;
+		menu->addChild(zeroSumItem);
+	}
+
 };
 
 
