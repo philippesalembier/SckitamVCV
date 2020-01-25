@@ -7,9 +7,12 @@ This page provides some information about the following plugins:
 * **[MarkovSeq](#MarkovSeq)**: Sequencer & Switch, 8 steps sequencers based on Markov chain
 * **[PolygonalVCO](#PolygonalVCO)**: VCO based on the paper: C. Hohnerlein, M. Rest, and J. O. Smith III, “Continuousorder polygonal waveform synthesis,” in Proceedings of theInternational Computer Music Conference, Utrecht, Netherlands, 2016.
 
-Note: Curently, all modules are monophonic. Polyphony will be considered for future releases. 
 
 ![](doc/SckitamVCV.png)
+
+![](doc/SckitamVCV_dark.png)
+
+The context menu allows one to choose between light or dark panel. 
 
 ## 2DRotation <a id="2DRotation"> </a>
 ![](doc/2DRotation.png)
@@ -26,6 +29,8 @@ The **Velocity** of the rotation can be specified by the knob on the right. The 
 
 The two sliders below \Delta X (\Delta Y) respectively define a horizontal (vertical) translation before and after the rotation. This allows one to precisely position the curve in the 2D space if necessary. 
 
+X & Y input and output are polyphonic. The actual number of channels is defined by the X input port.
+
 ## 2DAffine <a id="2DAffine"> </a>
 ![](doc/2DAffine.png)
 
@@ -36,6 +41,8 @@ Out1 = cos(\theta) (X + Sx Y) - sin(\theta) (Sy X + Y)
 Out2 = sin(\theta) (X + Sx Y) + cos(\theta) (Sy X + Y)
 
 The shearing creates horizontal and vertical deformations of the curve in the 2D plane. Note that the shearing can modify very significantly the signal dinamic. As a result, a (parabolic) saturator has been introduced at the output.  
+
+X & Y input and output are polyphonic. The actual number of channels is defined by the X input port.
 
 ## MarkovSeq <a id="MarkovSeq"> </a>
 ![](doc/MarkovSeq.png)
@@ -68,7 +75,10 @@ The left part of the plugin defines the values that are used to generate the out
 
 ![](doc/MarkovSeq_input.png)
 
-For each current state, the output is the sum of the incoming signal at the corresponding input port and the value of the knob (the transitions between values defined by the knobs can be smoothed by a Slew knob). The plugin can therefore be used as a sequencer, an 8 to 1 switch or a combination of both. The final output can also be scaled by a Gain parameter. The current state value (value between 0 and 7) is also available at one output port. Finally, for each transition,
+All input ports and the output port are polyphonic (the actual number of channels is defined by the input port of state 0). For each current state, the output is the sum of the incoming signal at the corresponding input port and the value of the knob (the transitions between values defined by the knobs can be smoothed by a Slew knob).
+If the input is polyphonic, the value of the knob value is added to all channels. The plugin can therefore be used as a sequencer, an 8 to 1 switch or a combination of both. The final output can also be scaled by a Gain parameter. 
+
+The current state value (value between 0 and 7) is also available at one output port. Finally, for each transition,
 a trigger is sent to the Trig output port of the current state: 
  
 ![](doc/MarkovSeq_States_output_triggers.png)
@@ -82,9 +92,11 @@ The VCO was proposed in C. Hohnerlein, M. Rest, and J. O. Smith III, “Continuo
 
 The oscillator has essentially two parameters: 
 
-1. **N: Order of the polygon**. Its value ranges from 2.1 up to 20 and can be CV modulated. High values of N create polygons that converge towards a circle and the resulting waveforms are cosine (X) and sine (Y) waves. Lower N values generate signals with richer harmonic content. 
+1. **N: Order of the polygon**. Its value ranges from 2.1 up to 20 and can be CV modulated. High values of N create polygons that converge towards a circle and the resulting waveforms are cosine (X) and sine (Y) waves. Lower N values generate signals with richer harmonic content. If one wants to restrict the possible set of harmonic variations, the N parameter can be quantized. The context menu provides several quantization step options: "None", "0.25", "0.33", "0.50" or "1.00"
 2. **T: Teeth**: This parameter creates "teeth" shapes on the corners of the polygon. These shapes increase the harmonic content of the signals.    
 
+The oscillator is polyphonic. The actual number of channels is defined by the pitch signal. The FM signal is assumed to have as many channels as the pitch signal. The N and T CV ports *may* also be polyphonic. If they are monophonic, their value is applied on all channels (otherwise individual values are used for each channel).
+ 
 In order to minimize the CPU load, no visual representation of the curve is included in the module itself. However, as shown in the figure above, the use of an additional scope is highly recommended, at least for sound design.
 
  

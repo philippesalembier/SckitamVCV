@@ -38,14 +38,15 @@ struct _2DRotation : Module {
 
 	float x1 = 0.f;
 	float x2 = 0.f;
-	float y1 = 0.f;
-	float y2 = 0.f;
+	float y1[16] = {};
+	float y2[16] = {};
 	float Theta = 0.f, VTheta = 0.f, tmp;
 	float DeltaTheta = 0.f;
 	float xoff_pre = 0.f;
 	float yoff_pre = 0.f;
 	float xoff_post = 0.f;
 	float yoff_post = 0.f;
+	int   panelTheme;
 
 	_2DRotation() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -58,16 +59,14 @@ struct _2DRotation : Module {
 		configParam(YOFF_PRE_PARAM, -10.f, 10.f, 0.0f, "Y_Offset");
 		configParam(XOFF_POST_PARAM, -10.f, 10.f, 0.0f, "X_Offset");
 		configParam(YOFF_POST_PARAM, -10.f, 10.f, 0.0f, "Y_Offset");
+		panelTheme = 0;
 	}
 
+
 	void process(const ProcessArgs& args) override {
-		// Read input values
-		x1   = inputs[IN1_INPUT].getVoltage();
-		x2   = inputs[IN2_INPUT].getVoltage();
-		xoff_pre = params[XOFF_PRE_PARAM].getValue();
-		yoff_pre = params[YOFF_PRE_PARAM].getValue();
-		x1 = x1 + xoff_pre;
-		x2 = x2 + yoff_pre;
+
+		// Use the first input to get number of channels
+		int channels = std::max(inputs[IN1_INPUT].getChannels(), 1);
 
 		// Define rotation angle
 		Theta = params[ANGLE_PARAM].getValue() / 180 * M_PI;
@@ -94,17 +93,31 @@ struct _2DRotation : Module {
 		else if (VTheta < -1.0f) {
 			VTheta += 2.0f;
 		}
-
 		Theta += M_PI * (DeltaTheta + VTheta);
-
-		// Rotation
-		y1 = std::cos(Theta) * x1 + std::sin(Theta) * x2;
-		y2 = - std::sin(Theta) * x1 + std::cos(Theta) * x2;	
+		
+		// Get translation parameters
+		xoff_pre = params[XOFF_PRE_PARAM].getValue();
+		yoff_pre = params[YOFF_PRE_PARAM].getValue();
 		xoff_post = params[XOFF_POST_PARAM].getValue();
 		yoff_post = params[YOFF_POST_PARAM].getValue();
+		
+		for (int c = 0; c < channels; c++) {
+			// Read input values
+			x1   = inputs[IN1_INPUT].getVoltage(c);
+			x2   = inputs[IN2_INPUT].getVoltage(c);
+			x1 = x1 + xoff_pre;
+			x2 = x2 + yoff_pre;
 	
-		outputs[OUT1_OUTPUT].setVoltage(y1+xoff_post);
-		outputs[OUT2_OUTPUT].setVoltage(y2+yoff_post);
+			// Rotation
+			y1[c] =   std::cos(Theta) * x1 + std::sin(Theta) * x2 + xoff_post;
+			y2[c] = - std::sin(Theta) * x1 + std::cos(Theta) * x2 + yoff_post;	
+		}
+	
+		// Set output values
+		outputs[OUT1_OUTPUT].setChannels(channels);
+		outputs[OUT2_OUTPUT].setChannels(channels);
+		outputs[OUT1_OUTPUT].writeVoltages(y1);
+		outputs[OUT2_OUTPUT].writeVoltages(y2);
 
 		//Light
 		lights[XOFF_PRE_LIGHT].setBrightness(std::abs(xoff_pre)/10);
@@ -112,12 +125,75 @@ struct _2DRotation : Module {
 		lights[XOFF_POST_LIGHT].setBrightness(std::abs(xoff_post)/10);
 		lights[YOFF_POST_LIGHT].setBrightness(std::abs(yoff_post)/10);
 	}
+
+	json_t *dataToJson() override {
+		json_t *rootJ = json_object();
+		// panelTheme
+		json_object_set_new(rootJ, "panelTheme", json_integer(panelTheme));
+		return rootJ;
+	}
+
+	
+	void dataFromJson(json_t *rootJ) override {
+		// panelTheme
+		json_t *panelThemeJ = json_object_get(rootJ, "panelTheme");
+		if (panelThemeJ)
+			panelTheme = (int)json_integer_value(panelThemeJ);
+		//resetNonJson();
+	}
+	
+
+
 };
 
 struct _2DRotationWidget : ModuleWidget {
+
+	SvgPanel* darkPanel;
+
+	struct PanelThemeItem : MenuItem {
+		_2DRotation *module;
+		int theme;
+		void onAction(const event::Action &e) override {
+			module->panelTheme = theme;
+		}
+		void step() override {
+			rightText = (module->panelTheme == theme) ? "✔" : "";
+		}
+	};	
+	void appendContextMenu(Menu *menu) override {
+		MenuLabel *spacerLabel = new MenuLabel();
+		menu->addChild(spacerLabel);
+
+		_2DRotation *module = dynamic_cast<_2DRotation*>(this->module);
+		assert(module);
+
+		MenuLabel *themeLabel = new MenuLabel();
+		themeLabel->text = "Panel Theme";
+		menu->addChild(themeLabel);
+
+		PanelThemeItem *lightItem = new PanelThemeItem();
+		lightItem->text = "Light panel";
+		lightItem->module = module;
+		lightItem->theme = 0;
+		menu->addChild(lightItem);
+
+		PanelThemeItem *darkItem = new PanelThemeItem();
+		darkItem->text = "Dark panel";	
+		darkItem->module = module;
+		darkItem->theme = 1;
+		menu->addChild(darkItem);
+	}	
+
 	_2DRotationWidget(_2DRotation* module) {
 		setModule(module);
+		
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/2DRotation.svg")));
+        	if (module) {
+			darkPanel = new SvgPanel();
+			darkPanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/2DRotation_dark.svg")));
+			darkPanel->visible = false;
+			addChild(darkPanel);
+		}
 
 		addChild(createWidget<ScrewSilver>(Vec(0, 0)));
 		//addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
@@ -145,6 +221,15 @@ struct _2DRotationWidget : ModuleWidget {
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(5.493, 118.046)),  module, _2DRotation::OUT1_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(14.755, 118.046)), module, _2DRotation::OUT2_OUTPUT));
 	}
+
+	void step() override {
+		if (module) {
+			panel->visible = ((((_2DRotation*)module)->panelTheme) == 0);
+			darkPanel->visible  = ((((_2DRotation*)module)->panelTheme) == 1);
+		}
+		Widget::step();
+	}
+
 };
 
 

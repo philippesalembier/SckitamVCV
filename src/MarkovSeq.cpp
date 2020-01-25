@@ -48,11 +48,12 @@ struct MarkovSeq : Module {
 	};
 	ZeroSum zeroSum;
 	
-	int 	lastChannels = 1;
+	int 	lastChannels = 1, i, c;
 	float 	lastGains[16] = {};
 	int	CurrentState = 0, NextState = 0;
-	float 	valout = 0.f, valout1, valout2, Gain, slewval = 0, slewout = 0, delta;
+	float 	valout[16] = {}, valout1, valout2, Gain, slewval = 0, slewout = 0, delta;
 	float 	Prob[8] = {0.f}, SumP = 0.f, pval = 0.f;
+	int	panelTheme; 
 	dsp::BooleanTrigger stepTrigger, state0Trigger, state1Trigger, state2Trigger, state3Trigger, state4Trigger, state5Trigger, state6Trigger, state7Trigger;
 	dsp::SlewLimiter clickFilters[8];
 	dsp::PulseGenerator pulseGenerators[8];
@@ -66,17 +67,17 @@ struct MarkovSeq : Module {
 		configParam(STEP_PARAM,  0.f, 10.f, 0.f, "Manual Step");
 		configParam(SCALE_PARAM, 0.f,  1.f, 1.f, "Output Gain");
 		configParam(SLEW_PARAM, 0.f,  0.999f, 0.f, "Slew");
-		for (int i = 0; i < 8; i++)
+		for (i = 0; i < 8; i++)
 			configParam(VAL_PARAMS + i, -10.f, 10.f, 0.f, string::f("Val %d", i + 1));
-		for (int i = 0; i < 8; i++)
+		for (i = 0; i < 8; i++)
 			configParam(FORCE_PARAMS + i, 0.f, 10.f, 0.f, string::f("Force State %d", i));
-		for (int i = 0; i < 8; i++){
+		for (i = 0; i < 8; i++){
 			configParam(TO_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition to S%d", i));
 			configParam(TO_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition to S%d to 0.5", i));
 			configParam(FROM_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition from S%d", i));
 			configParam(FROM_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition from S%d to 0.5", i));
 		}	
-		for (int i = 0; i < 8; i++) {
+		for (i = 0; i < 8; i++) {
 			configParam(P0_PARAMS + i, 0.f, 1.f, 0.f, string::f("P0->%d", i));
 			configParam(P1_PARAMS + i, 0.f, 1.f, 0.f, string::f("P1->%d", i));
 			configParam(P2_PARAMS + i, 0.f, 1.f, 0.f, string::f("P2->%d", i));
@@ -96,14 +97,17 @@ struct MarkovSeq : Module {
 		configParam(P6_PARAMS + 7, 0.f, 1.f, 0.5f, string::f("P0->%d", 7));
 		configParam(P7_PARAMS + 0, 0.f, 1.f, 0.5f, string::f("P0->%d", 0));
 
-		for (int i = 0; i < 8; i++) {
+		for (i = 0; i < 8; i++) {
 			clickFilters[i].rise = 400.f; // Hz
 			clickFilters[i].fall = 400.f; // Hz
 		}
 		onReset();
+		panelTheme = 0;
 	}
 
 	void process(const ProcessArgs& args) override {
+
+		// Check if a trigger defines the NextState
 		bool FState0 = (params[FORCE_PARAMS].getValue() + inputs[GFORCE_INPUTS].getVoltage()) > 1.0f;
 		if (state0Trigger.process(FState0)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
@@ -153,8 +157,8 @@ struct MarkovSeq : Module {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
 
-		// Update probabilites if necessary
-		for (int i = 0; i < 8; i++) { 
+		// Update probabilities if necessary ("+" & "-" buttons)
+		for (i = 0; i < 8; i++) { 
 			if (params[TO_S_OFF_PARAMS + i].getValue() > 0) {
 				params[TO_S_OFF_PARAMS + i].setValue(0.f);
 				params[P0_PARAMS + i].setValue(0.f);
@@ -249,85 +253,29 @@ struct MarkovSeq : Module {
 		
 			// Compute the transition probabilities
 			switch(CurrentState){
-				case 0:	
-					Prob[0] = params[P0_PARAMS].getValue();
-					Prob[1] = params[P0_PARAMS+1].getValue();
-					Prob[2] = params[P0_PARAMS+2].getValue();
-					Prob[3] = params[P0_PARAMS+3].getValue();
-					Prob[4] = params[P0_PARAMS+4].getValue();
-					Prob[5] = params[P0_PARAMS+5].getValue();
-					Prob[6] = params[P0_PARAMS+6].getValue();
-					Prob[7] = params[P0_PARAMS+7].getValue();
+				case 0:
+					for (i=0; i<8; i++) { Prob[i] = params[P0_PARAMS + i].getValue();}
 					break;
-				case 1:
-					Prob[0] = params[P1_PARAMS].getValue();
-					Prob[1] = params[P1_PARAMS+1].getValue();
-					Prob[2] = params[P1_PARAMS+2].getValue();
-					Prob[3] = params[P1_PARAMS+3].getValue();
-					Prob[4] = params[P1_PARAMS+4].getValue();
-					Prob[5] = params[P1_PARAMS+5].getValue();
-					Prob[6] = params[P1_PARAMS+6].getValue();
-					Prob[7] = params[P1_PARAMS+7].getValue();
+				case 1:	
+					for (i=0; i<8; i++) { Prob[i] = params[P1_PARAMS + i].getValue();}
 					break;
-				case 2:	
-					Prob[0] = params[P2_PARAMS].getValue();
-					Prob[1] = params[P2_PARAMS+1].getValue();
-					Prob[2] = params[P2_PARAMS+2].getValue();
-					Prob[3] = params[P2_PARAMS+3].getValue();
-					Prob[4] = params[P2_PARAMS+4].getValue();
-					Prob[5] = params[P2_PARAMS+5].getValue();
-					Prob[6] = params[P2_PARAMS+6].getValue();
-					Prob[7] = params[P2_PARAMS+7].getValue();
+				case 2:		
+					for (i=0; i<8; i++) { Prob[i] = params[P2_PARAMS + i].getValue();}
 					break;
-				case 3:
-					Prob[0] = params[P3_PARAMS].getValue();
-					Prob[1] = params[P3_PARAMS+1].getValue();
-					Prob[2] = params[P3_PARAMS+2].getValue();
-					Prob[3] = params[P3_PARAMS+3].getValue();
-					Prob[4] = params[P3_PARAMS+4].getValue();
-					Prob[5] = params[P3_PARAMS+5].getValue();
-					Prob[6] = params[P3_PARAMS+6].getValue();
-					Prob[7] = params[P3_PARAMS+7].getValue();
+				case 3:	
+					for (i=0; i<8; i++) { Prob[i] = params[P3_PARAMS + i].getValue();}
 					break;
-				case 4:	
-					Prob[0] = params[P4_PARAMS].getValue();
-					Prob[1] = params[P4_PARAMS+1].getValue();
-					Prob[2] = params[P4_PARAMS+2].getValue();
-					Prob[3] = params[P4_PARAMS+3].getValue();
-					Prob[4] = params[P4_PARAMS+4].getValue();
-					Prob[5] = params[P4_PARAMS+5].getValue();
-					Prob[6] = params[P4_PARAMS+6].getValue();
-					Prob[7] = params[P4_PARAMS+7].getValue();
+				case 4:		
+					for (i=0; i<8; i++) { Prob[i] = params[P4_PARAMS + i].getValue();}
 					break;
-				case 5:
-					Prob[0] = params[P5_PARAMS].getValue();
-					Prob[1] = params[P5_PARAMS+1].getValue();
-					Prob[2] = params[P5_PARAMS+2].getValue();
-					Prob[3] = params[P5_PARAMS+3].getValue();
-					Prob[4] = params[P5_PARAMS+4].getValue();
-					Prob[5] = params[P5_PARAMS+5].getValue();
-					Prob[6] = params[P5_PARAMS+6].getValue();
-					Prob[7] = params[P5_PARAMS+7].getValue();
+				case 5:	
+					for (i=0; i<8; i++) { Prob[i] = params[P5_PARAMS + i].getValue();}
 					break;
-				case 6:	
-					Prob[0] = params[P6_PARAMS].getValue();
-					Prob[1] = params[P6_PARAMS+1].getValue();
-					Prob[2] = params[P6_PARAMS+2].getValue();
-					Prob[3] = params[P6_PARAMS+3].getValue();
-					Prob[4] = params[P6_PARAMS+4].getValue();
-					Prob[5] = params[P6_PARAMS+5].getValue();
-					Prob[6] = params[P6_PARAMS+6].getValue();
-					Prob[7] = params[P6_PARAMS+7].getValue();
+				case 6:		
+					for (i=0; i<8; i++) { Prob[i] = params[P6_PARAMS + i].getValue();}
 					break;
-				case 7:
-					Prob[0] = params[P7_PARAMS].getValue();
-					Prob[1] = params[P7_PARAMS+1].getValue();
-					Prob[2] = params[P7_PARAMS+2].getValue();
-					Prob[3] = params[P7_PARAMS+3].getValue();
-					Prob[4] = params[P7_PARAMS+4].getValue();
-					Prob[5] = params[P7_PARAMS+5].getValue();
-					Prob[6] = params[P7_PARAMS+6].getValue();
-					Prob[7] = params[P7_PARAMS+7].getValue();
+				case 7:	
+					for (i=0; i<8; i++) { Prob[i] = params[P7_PARAMS + i].getValue();}
 					break;
 			}
 			SumP = Prob[0]+Prob[1]+Prob[2]+Prob[3]+Prob[4]+Prob[5]+Prob[6]+Prob[7];
@@ -335,8 +283,7 @@ struct MarkovSeq : Module {
 				for (int i=0; i<8; i++) Prob[i] = Prob[i] / SumP; 
 			}
 			else {
-				//DEBUG("zeroSum %d", zeroSum);
-				// Depending on the context menu, define the df as a delta or as uniform 
+				// Depending on the context menu, define the pdf as a delta or as uniform 
 				if (zeroSum == 0) {
 					Prob[CurrentState]=1.f;
 				}
@@ -356,15 +303,14 @@ struct MarkovSeq : Module {
 			else if (pval<( Prob[0]+Prob[1]+Prob[2]+Prob[3]+Prob[4]+Prob[5]+Prob[6] )) NextState = 6;
 			else 	NextState = 7;
 
-
 			// Lights on
 			lights[CUR_LIGHTS  + CurrentState].setBrightness(1.f);
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
 
 
-	      	// OUTPUT
-		// Slew de parameter evolution
+	      	// OUTPUT: sum of valout1 (knob) and value at the input ports
+		// Slew the parameter evolution
 		valout1 = params[VAL_PARAMS + CurrentState].getValue();
 		slewval =  log10(199*params[SLEW_PARAM].getValue()+1)/log10(200);
 		delta   = valout1 - slewout;
@@ -376,22 +322,29 @@ struct MarkovSeq : Module {
             		if (slewout < valout1){ slewout = valout1;}
 		}
 		
-		// Prevent clicks on inputs
-		valout2 = 0;
-		float G0 = 0;
-		for (int i = 0; i < 8; i++) {
+		// Use first input to get number of channels
+		int channels = std::max(inputs[IN_INPUTS + 0].getChannels(), 1);
+
+		// Compute the output coming from input ports
+		for (c = 0; c < channels; c++) { valout[c] = 0.f;}
+		for (i = 0; i < 8; i++) {
 			float gaininput = clickFilters[i].process(args.sampleTime, CurrentState == i);
-			if (i==0){G0 = gaininput;}
 			if (gaininput != 0.f) {
-				float in = inputs[IN_INPUTS  + i].getVoltage();
-				valout2 += in * gaininput;
+				for (c = 0; c < channels; c++) {
+					float in = inputs[IN_INPUTS  + i].getVoltage(c);
+					valout[c] += in * gaininput;
+				}
 			}
 		}
 
-		Gain = params[SCALE_PARAM].getValue();
-		valout = clamp( (slewout+valout2) * Gain, -10.f, 10.f);
+		Gain 	= params[SCALE_PARAM].getValue();
+		for (c = 0; c < channels; c++) {
+			valout[c] = clamp( (slewout+valout[c]) * Gain, -10.f, 10.f);
+		}
+
 		// Output values 
-		outputs[OUT_OUTPUT].setVoltage(valout);
+		outputs[OUT_OUTPUT].setChannels(channels);
+		outputs[OUT_OUTPUT].writeVoltages(valout);
 
 		outputs[STATE_OUTPUT].setVoltage(CurrentState);	
 
@@ -407,14 +360,22 @@ struct MarkovSeq : Module {
 
 	json_t* dataToJson() override {
 		json_t* rootJ = json_object();
+		// All probabilites to 0
 		json_object_set_new(rootJ, "zeroSum", json_integer(zeroSum));
+		// panelTheme
+		json_object_set_new(rootJ, "panelTheme", json_integer(panelTheme));
 		return rootJ;
 	}
 
 	void dataFromJson(json_t* rootJ) override {
 		json_t* zeroSumJ = json_object_get(rootJ, "zeroSum");
+		// All probabilities to 0
 		if (zeroSumJ)
 			zeroSum = (ZeroSum) json_integer_value(zeroSumJ);
+		// panelTheme
+		json_t *panelThemeJ = json_object_get(rootJ, "panelTheme");
+		if (panelThemeJ)
+			panelTheme = json_integer_value(panelThemeJ);	
 	}
 
 };
@@ -513,9 +474,64 @@ struct ZeroSumItem : MenuItem {
 
 
 struct MarkovSeqWidget : ModuleWidget {
+
+	SvgPanel* darkPanel;
+
+	struct PanelThemeItem : MenuItem {
+		MarkovSeq *module;
+		int theme;
+		void onAction(const event::Action &e) override {
+			module->panelTheme = theme;
+		}
+		void step() override {
+			rightText = (module->panelTheme == theme) ? "✔" : "";
+		}
+	};	
+	void appendContextMenu(Menu *menu) override {
+		MenuLabel *spacerLabel = new MenuLabel();
+
+		MarkovSeq *module = dynamic_cast<MarkovSeq*>(this->module);
+		assert(module);
+
+		// All probabilities to 0
+		menu->addChild(new MenuEntry);
+
+		ZeroSumItem* zeroSumItem = new ZeroSumItem;
+		zeroSumItem->text = "If all probabilities are zero....";
+		zeroSumItem->rightText = RIGHT_ARROW;
+		zeroSumItem->module = module;
+		menu->addChild(zeroSumItem);
+		
+		// Panel
+		menu->addChild(spacerLabel);
+		MenuLabel *themeLabel = new MenuLabel();
+		themeLabel->text = "Panel Theme";
+		menu->addChild(themeLabel);
+
+		PanelThemeItem *lightItem = new PanelThemeItem();
+		lightItem->text = "Light panel";
+		lightItem->module = module;
+		lightItem->theme = 0;
+		menu->addChild(lightItem);
+
+		PanelThemeItem *darkItem = new PanelThemeItem();
+		darkItem->text = "Dark panel";	
+		darkItem->module = module;
+		darkItem->theme = 1;
+		menu->addChild(darkItem);
+	}	
+
+
 	MarkovSeqWidget(MarkovSeq* module) {
 		setModule(module);
+
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/MarkovSeq.svg")));
+       		if (module) {
+			darkPanel = new SvgPanel();
+			darkPanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/MarkovSeq_dark.svg")));
+			darkPanel->visible = false;
+			addChild(darkPanel);
+		}
 
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
@@ -763,18 +779,25 @@ struct MarkovSeqWidget : ModuleWidget {
 		addChild(createLightCentered<LargeLight<RedLight>>(mm2px(Vec(117.15, 118.19)), module, MarkovSeq::CUR_LIGHTS + 7));
 		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(125.45, 118.19)), module, MarkovSeq::NEXT_LIGHTS + 7));
 	}
-
-	void appendContextMenu(Menu* menu) override {
-		MarkovSeq* module = dynamic_cast<MarkovSeq*>(this->module);
-
-		menu->addChild(new MenuEntry);
-
-		ZeroSumItem* zeroSumItem = new ZeroSumItem;
-		zeroSumItem->text = "If all probabilities are zero....";
-		zeroSumItem->rightText = RIGHT_ARROW;
-		zeroSumItem->module = module;
-		menu->addChild(zeroSumItem);
+	void step() override {
+		if (module) {
+			panel->visible = ((((MarkovSeq*)module)->panelTheme) == 0);
+			darkPanel->visible  = ((((MarkovSeq*)module)->panelTheme) == 1);
+		}
+		Widget::step();
 	}
+
+//	void appendContextMenu(Menu* menu) override {
+//		MarkovSeq* module = dynamic_cast<MarkovSeq*>(this->module);
+
+//		menu->addChild(new MenuEntry);
+
+//		ZeroSumItem* zeroSumItem = new ZeroSumItem;
+//		zeroSumItem->text = "If all probabilities are zero....";
+//		zeroSumItem->rightText = RIGHT_ARROW;
+//		zeroSumItem->module = module;
+//		menu->addChild(zeroSumItem);
+//	}
 
 };
 
