@@ -26,8 +26,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.979899"
-     inkscape:cx="79.490451"
-     inkscape:cy="185.79966"
+     inkscape:cx="18.123684"
+     inkscape:cy="266.61186"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -36,8 +36,8 @@
      inkscape:snap-page="true"
      inkscape:bbox-nodes="false"
      inkscape:snap-bbox-edge-midpoints="false"
-     inkscape:window-width="1447"
-     inkscape:window-height="1036"
+     inkscape:window-width="2154"
+     inkscape:window-height="1381"
      inkscape:window-x="112"
      inkscape:window-y="0"
      inkscape:window-maximized="0"
@@ -51,7 +51,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -66,7 +66,7 @@
        id="rect420"
        width="30.48"
        height="128.5"
-       x="5.9211732e-17"
+       x="0"
        y="168.49997" />
     <g
        aria-label="Sckitam"

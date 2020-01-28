@@ -139,11 +139,7 @@ struct _2DRotation : Module {
 		json_t *panelThemeJ = json_object_get(rootJ, "panelTheme");
 		if (panelThemeJ)
 			panelTheme = (int)json_integer_value(panelThemeJ);
-		//resetNonJson();
 	}
-	
-
-
 };
 
 struct _2DRotationWidget : ModuleWidget {
