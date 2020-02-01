@@ -38,9 +38,9 @@ struct PolygonalVCO : Module {
 	NPolyQuant	nPolyQuant;
 
 	float 	pitch, PPhi[16]={}, Phi=0.f, modPhi[16]={}, modPhi1[16]={}, P=0.f, freq, NPoly, x, y, tmp1, tmp2;
-	float	Teeth=0.f, fracDelay, PhiTr, fxprime, fyprime, fx, fy, Correction = 0.f, Gain = 1.f;
-	float	xout0[16]={}, xout1[16]={}, xout2[16]={}, xout3[16]={}, xout[16]={};
-	float	yout0[16]={}, yout1[16]={}, yout2[16]={}, yout3[16]={}, yout[16]={};
+	float	Teeth=0.f, fracDelay, PhiTr, fPprime, fP, Correction = 0.f, Gain = 1.f;
+	float	Pout0[16]={}, Pout1[16]={}, Pout2[16]={}, Pout3[16]={}, Pout[16]={};
+	float	xout[16]={}, yout[16]={};
 	float	h0, h1, h2, h3, d1, d2, d3, d4, d5;
 	int   	panelTheme;
 
@@ -85,7 +85,8 @@ struct PolygonalVCO : Module {
 				NPoly   = params[NPOLY_PARAM].getValue() 
 					+ params[NPOLYAMOUNT_PARAM].getValue() * inputs[NPOLYCV_INPUT].getVoltage(c); 
 			}
-
+			NPoly = fmin(NPoly,1.0f/(freq * args.sampleTime)); 
+				
 			switch(nPolyQuant) {
 				case 0:
             				NPoly   = clamp(NPoly, 2.1f, 20.f);
@@ -127,7 +128,7 @@ struct PolygonalVCO : Module {
 			else{
 				Teeth = Teeth * (-0.0019f*NPoly*NPoly+0.07f*NPoly+0.2875f);
 			}	
-		
+
 			// Accumulate the phase
         		PPhi[c] += freq * args.sampleTime;
         		if (PPhi[c] >= 0.5f)
@@ -146,12 +147,11 @@ struct PolygonalVCO : Module {
 				tmp1 	  = 2.f * M_PI * freq * args.sampleTime;
 				PhiTr 	  = Phi - fracDelay * tmp1;
 				if (Teeth > 0.f){
-					tmp2 = std::cos(M_PI/NPoly) * (1.f/std::cos(-1.f*M_PI/NPoly+Teeth)-1.f/std::cos(M_PI/NPoly+Teeth));
-					fx   = std::cos(Phi) * tmp2;
-					fy   = std::sin(Phi) * tmp2;
+					fP = std::cos(M_PI/NPoly) * (1.f/std::cos(-1.f*M_PI/NPoly+Teeth)-1.f/std::cos(M_PI/NPoly+Teeth));
 				}
-				fxprime    = -2.f * std::tan(M_PI/NPoly) * std::cos(PhiTr) * tmp1;
-				fyprime    = -2.f * std::tan(M_PI/NPoly) * std::sin(PhiTr) * tmp1;
+				fPprime   = -2.f * std::tan(M_PI/NPoly) * tmp1;
+				fPprime   = std::cos(M_PI/NPoly) * (std::tan(Teeth-(M_PI/NPoly))/std::cos(Teeth-(M_PI/NPoly)) 
+						                 -  std::tan(Teeth+(M_PI/NPoly))/std::cos(Teeth+(M_PI/NPoly))) * tmp1;
 				Correction = 1.0;
 				modPhi[c] -= 1.f;
 			}
@@ -160,23 +160,20 @@ struct PolygonalVCO : Module {
 				tmp1 	  = 2.f * M_PI * freq *  args.sampleTime;
 				PhiTr 	  = Phi - fracDelay * tmp1;
 				if (Teeth > 0.f){
-					tmp2 = std::cos(M_PI/NPoly) * (1.f/std::cos(-M_PI/NPoly+Teeth)-1.f/std::cos(M_PI/NPoly+Teeth));
-					fx   = - std::cos(Phi) * tmp2;
-					fy   = - std::sin(Phi) * tmp2;
+					fP = std::cos(M_PI/NPoly) * (1.f/std::cos(-M_PI/NPoly+Teeth)-1.f/std::cos(M_PI/NPoly+Teeth));
 				}			
-				fxprime    = 2.f * std::tan(M_PI/NPoly) * std::cos(PhiTr) * tmp1;
-				fyprime    = 2.f * std::tan(M_PI/NPoly) * std::sin(PhiTr) * tmp1;
+				fPprime    = 2.f * std::tan(M_PI/NPoly) * tmp1;
+				fPprime    = -1.0f * std::cos(M_PI/NPoly) * (std::tan(Teeth-(M_PI/NPoly))/std::cos(Teeth-(M_PI/NPoly)) 
+						                 -  std::tan(Teeth+(M_PI/NPoly))/std::cos(Teeth+(M_PI/NPoly))) * tmp1;
 				Correction = 1.0;
 				modPhi[c] += 1.f;
 			}
 
 			// Create Polygon
 			P = std::cos(M_PI/NPoly)/std::cos((2*modPhi[c]-1)*M_PI/NPoly+Teeth);
-			x = std::cos(Phi)*P;
-			y = std::sin(Phi)*P;
 
-			xout0[c] = 0.f; yout0[c] = 0.f;
-			xout1[c] = x;   yout1[c] = y;
+			Pout0[c] = 0.f; 
+			Pout1[c] = P;   
 			if (Correction == 1.f){
 				d1 = fracDelay; d2 = d1*d1; d3 = d2*d1; d4=d3*d1; d5=d4*d1;
 
@@ -187,15 +184,10 @@ struct PolygonalVCO : Module {
 					h1 =  0.11656f * d4 - 0.31670f * d3 + 0.02409f * d2 + 0.62351f * d1 - 0.5f;
 					h0 = -0.03871f * d4 + 0.16102f * d3 - 0.25816f * d2 + 0.18839f * d1 - 0.05254f;
 
-					xout0[c] = xout0[c] + fx*h0;
-					xout1[c] = xout1[c] + fx*h1;
-					xout2[c] = xout2[c] + fx*h2;
-					xout3[c] = xout3[c] + fx*h3;
-		    
-					yout0[c] = yout0[c] + fy*h0;
-					yout1[c] = yout1[c] + fy*h1;
-					yout2[c] = yout2[c] + fy*h2;
-					yout3[c] = yout3[c] + fy*h3;
+					Pout0[c] = Pout0[c] + fP*h0;
+					Pout1[c] = Pout1[c] + fP*h1;
+					Pout2[c] = Pout2[c] + fP*h2;
+					Pout3[c] = Pout3[c] + fP*h3;
 				}
 
 				// PolyBlam Correction
@@ -204,26 +196,20 @@ struct PolygonalVCO : Module {
 				h2 = -0.025    * d5 + 0.041667 * d4 + 0.083333 * d3 + 0.083333 * d2 + 0.041667 * d1 + 0.008333;
 				h3 =  0.008333 * d5;
 
-				xout0[c] = xout0[c] + fxprime*h0;
-				xout1[c] = xout1[c] + fxprime*h1;
-				xout2[c] = xout2[c] + fxprime*h2;
-				xout3[c] = xout3[c] + fxprime*h3;
-		
-				yout0[c] = yout0[c] + fyprime*h0;
-				yout1[c] = yout1[c] + fyprime*h1;
-				yout2[c] = yout2[c] + fyprime*h2;
-				yout3[c] = yout3[c] + fyprime*h3;
+				Pout0[c] = Pout0[c] + fPprime*h0;
+				Pout1[c] = Pout1[c] + fPprime*h1;
+				Pout2[c] = Pout2[c] + fPprime*h2;
+				Pout3[c] = Pout3[c] + fPprime*h3;
 			}
 
 			// Output
 			Gain = 1.f - 0.5f * Teeth;
-			xout[c] = clamp(2.5f * Gain * xout3[c], -10.f, 10.f);
-			yout[c] = clamp(2.5f * Gain * yout3[c], -10.f, 10.f);
+			xout[c] = clamp(2.5f * Gain * Pout3[c] * std::cos(Phi), -10.f, 10.f);
+			yout[c] = clamp(2.5f * Gain * Pout3[c] * std::sin(Phi), -10.f, 10.f);
 	
 			// Keep values for the next iteration
 			modPhi1[c] = modPhi[c];
-			xout3[c] = xout2[c]; xout2[c] = xout1[c]; xout1[c] = xout0[c];
-			yout3[c] = yout2[c]; yout2[c] = yout1[c]; yout1[c] = yout0[c];
+			Pout3[c] = Pout2[c]; Pout2[c] = Pout1[c]; Pout1[c] = Pout0[c];
 		}
 
 		// Set output values
