@@ -1,3 +1,6 @@
+#### 1.0.3 (2020-02-??)
+- **Polygonal VCO**: Improved aliasing reduction for high teeth values
+
 #### 1.0.2 (2020-01-25)
 - **All Modules**: Add support for polyphony
 - **All Modules**: Add option in the context menu for light or dark panel
