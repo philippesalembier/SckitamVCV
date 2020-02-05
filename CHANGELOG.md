@@ -1,5 +1,5 @@
-#### 1.0.3 (2020-02-02)
-- **Polygonal VCO**: Improved aliasing reduction for high teeth values
+#### 1.0.3 (2020-02-05)
+- **Polygonal VCO**: Improved aliasing reduction for high teeth values and correction of bug related to FM input
 
 #### 1.0.2 (2020-01-25)
 - **All Modules**: Add support for polyphony

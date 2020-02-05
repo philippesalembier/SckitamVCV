@@ -74,7 +74,7 @@ struct PolygonalVCO : Module {
 
 			pitch  = clamp(pitch, -4.f, 4.f);
         		freq   = dsp::FREQ_C4 * std::pow(2.f, pitch);
-			freq  += 1000.f * params[FMAMOUNT_PARAM].getValue() * inputs[FM_INPUT].getVoltage(c); 
+			freq  += 700.f * params[FMAMOUNT_PARAM].getValue() * inputs[FM_INPUT].getVoltage(c); 
 			freq   = clamp(freq,-20000.f,20000.f);
 
 			// Compute NPoly value
