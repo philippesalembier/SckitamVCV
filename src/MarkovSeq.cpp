@@ -312,7 +312,7 @@ struct MarkovSeq : Module {
 	      	// OUTPUT: sum of valout1 (knob) and value at the input ports
 		// Slew the parameter evolution
 		valout1 = params[VAL_PARAMS + CurrentState].getValue();
-		slewval =  log10(199*params[SLEW_PARAM].getValue()+1)/log10(200);
+		slewval = log10(199*params[SLEW_PARAM].getValue()+1)/log10(200);
 		delta   = valout1 - slewout;
         	if (delta > 0){
             		slewout = slewout + (1.0 - slewval);

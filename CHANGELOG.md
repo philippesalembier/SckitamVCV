@@ -1,3 +1,13 @@
+#### 1.0.4 (2020-02-27)
+- **MarkovSeq**: GUI update (States from 1 to 8)
+- Fix tags and module descriptions
+
+#### 1.0.3 (2020-02-05)
+- **Polygonal VCO**: Improved aliasing reduction for high teeth values and correction of bug related to FM input
+
+#### 1.0.3 (2020-02-05)
+- **Polygonal VCO**: Improved aliasing reduction for high teeth values and correction of bug related to FM input
+
 #### 1.0.3 (2020-02-05)
 - **Polygonal VCO**: Improved aliasing reduction for high teeth values and correction of bug related to FM input
 

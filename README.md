@@ -1,6 +1,6 @@
 ## Sckitam plugin for VCV Rack
 
-This page provides some information about the following plugins:
+This page provides some information about the following modules:
 
 * **[2DRotation](#2DRotation)**: Utility, 2D Rotation of 2 input signals
 * **[2DAffine](#2DAffine)**: Utility, 2D Affine Transform of 2 intput signals
@@ -17,7 +17,7 @@ The context menu allows one to choose between light or dark panel.
 ## 2DRotation <a id="2DRotation"> </a>
 ![](doc/2DRotation.png)
 
-The two input signals, X and Y, are considered as the horizontal and vertical displacements on a 2D plane. They form a curve. The plugin mix them following a rotation rule. The two output signals are defined by:
+The two input signals, X and Y, are considered as the horizontal and vertical displacements on a 2D plane. They form a curve. The module mix them following a rotation rule. The two output signals are defined by:
 
 Out1 = cos(\theta) X - sin(\theta) Y
 
@@ -47,8 +47,8 @@ X & Y input and output are polyphonic. The actual number of channels is defined 
 ## MarkovSeq <a id="MarkovSeq"> </a>
 ![](doc/MarkovSeq.png)
 
-**8 steps sequencer or 8 to 1 switch**: This plugin defines 8 states and each incoming clock generates a **new state** which is defined by probabilities associated to the **current state**. This is essentially a first order 
-[Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) and allows one to define a graph of events with associated transition probabilities. The transition probabilites from each current state, S0,...,S7, are defined by the central part of the plugin. 
+**8 steps sequencer or 8 to 1 switch**: This module defines 8 states and each incoming clock generates a **new state** which is defined by probabilities associated to the **current state**. This is essentially a first order 
+[Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) and allows one to define a graph of events with associated transition probabilities. The transition probabilites from each current state, S1,...,S8, are defined by the central part of the module. 
 
 ![](doc/MarkovSeq_State_Transition.png)
 
@@ -65,18 +65,18 @@ The probabilities initialization is done such that the sequencer moves as a regu
 
 ![](doc/MarkovSeq_Initialization.png)
 
-The states are visualized on the right side of the plugin: 
+The states are visualized on the right side of the module: 
 
 ![](doc/MarkovSeq_States.png)
 
 The current state is shown in red and the next state (the one that will be triggered by the next clock gate) in blue. The next state can also be forced either manually with the associated button or by a gate signal. 
 
-The left part of the plugin defines the values that are used to generate the output value for each current state. 
+The left part of the module defines the values that are used to generate the output value for each current state. 
 
 ![](doc/MarkovSeq_input.png)
 
 All input ports and the output port are polyphonic (the actual number of channels is defined by the input port of state 0). For each current state, the output is the sum of the incoming signal at the corresponding input port and the value of the knob (the transitions between values defined by the knobs can be smoothed by a Slew knob).
-If the input is polyphonic, the value of the knob value is added to all channels. The plugin can therefore be used as a sequencer, an 8 to 1 switch or a combination of both. The final output can also be scaled by a Gain parameter. 
+If the input is polyphonic, the value of the knob value is added to all channels. The module can therefore be used as a sequencer, an 8 to 1 switch or a combination of both. The final output can also be scaled by a Gain parameter. 
 
 The current state value (value between 0 and 7) is also available at one output port. Finally, for each transition,
 a trigger is sent to the Trig output port of the current state: 
