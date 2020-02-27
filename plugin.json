@@ -47,7 +47,6 @@
       "description": "Polygonal VCO",
       "tags": [
         "Oscillator",
-	"VCO", 
 	"Polyphonic"
       ]
     }
