@@ -40,9 +40,9 @@ struct WDelay : Module {
 
 	DelaySpec delaySpec=PITCH;
 	
-	float 	Buffer[BufferLength] = {0.0}, x, y, ypickup, pitch, freq, delay, fDelay, IReadf;
+	float 	Buffer[BufferLength] = {0.0}, x, y, ypickup, pitch, freq, delay, fDelay, IReadf, IPickupposf, PickupOut;
 	float	tm1, t0, t1, t2, a, b, tmp, feedbackSign;
-	int	IWrite=0, IRead0, IRead1, IRead2, IRead3, IPickuppos;
+	int	IWrite=0, IRead0, IRead1, IRead2, IRead3, IPickuppos0, IPickuppos1;
 	
 	WDelay() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -128,16 +128,21 @@ struct WDelay : Module {
 
 		y = clamp(y, -20.0f, 20.0f);
 
-		// Pickup output
+		// Pickup output (linear interoolation)
 		tmp = params[PICKUP_PARAM].getValue() 
       		    + params[PICKUPMOD_PARAM].getValue() * inputs[PICKUPMOD_INPUT].getVoltage()/10.0f;	
 		tmp = clamp(tmp, 0.f, 1.f);
-		IPickuppos = IWrite - round(tmp*(IWrite-IReadf));
-		if (IPickuppos<0) IPickuppos += BufferLength;
+		IPickupposf = IWrite - tmp*(IWrite-IReadf);
+		IPickuppos0 = floor(IPickupposf);
+		IPickuppos1 = IPickuppos0 + 1;
+		fDelay = IPickupposf - IPickuppos0;
+		if (IPickuppos0<0) IPickuppos0 += BufferLength;
+		if (IPickuppos1<0) IPickuppos1 += BufferLength;
+		PickupOut = (1.0f - fDelay) * Buffer[IPickuppos0] + fDelay * Buffer[IPickuppos1];
 
 		// Ouput
 		outputs[OUT_OUTPUT].setVoltage(y);
-		outputs[PICKUP_OUTPUT].setVoltage(Buffer[IPickuppos]);
+		outputs[PICKUP_OUTPUT].setVoltage(PickupOut);
 
 		// Increment IWrite
 		IWrite += 1;
