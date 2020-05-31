@@ -13,3 +13,4 @@ extern Model* model_2DRotation;
 extern Model* model_2DAffine;
 extern Model* modelMarkovSeq;
 extern Model* modelPolygonalVCO;
+extern Model* modelWDelay;

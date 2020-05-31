@@ -14,6 +14,17 @@ struct ScButton : ParamWidget {
 	void onDragEnd(const event::DragEnd& e) override;
 };
 
+struct RoundGreenKnob : RoundKnob {
+	RoundGreenKnob() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/RoundGreenKnob.svg")));
+	}
+};
+struct RoundBlueKnob : RoundKnob {
+	RoundBlueKnob() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/RoundBlueKnob.svg")));
+	}
+};
+
 struct ScButton1 : ScButton {ScButton1(); };
 struct ScButtonMinus : ScButton {ScButtonMinus(); };
 struct ScButtonPlus : ScButton {ScButtonPlus(); };
