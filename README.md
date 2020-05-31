@@ -103,11 +103,11 @@ In order to minimize the CPU load, no visual representation of the curve is incl
 ## WDelay <a id="WDelay"> </a>
 ![](doc/WDelay.png)
 
-This module is a simple building block for Digital Waveguide and Karplus-Strong synthesis. It can also be used to create Flanger or Chorus. It is a high precision delay where the output is computed with 3rd order Lagrange interplotation. Beside the main output, a secondary output called "pickup" is also available. It allows one to extract the signal at an arbirary position of the delay buffer. 
+This module is a simple building block for Digital Waveguide and Karplus-Strong synthesis. It can also be used to create Flanger or Chorus. It is a high precision delay where the output is computed with 3rd order Lagrange interplotation. Beside the main output, a secondary output called "pickup" is also available. It allows one to extract the signal at an arbitrary position of the delay buffer. 
 
 #### Input 
 1. "In": Input port of the delay.  
-2. "FBack": Input port for the feedback signal. Note that, by default, the output signal is not routed back to the input of the delay. A connection has to be done explicitely. One of the motivation of this module is to allow experimenting with different filters (or possibly other type of processing) inserted in the feedback loop. The FBack signal is scaled by a knob (values between 0 and 0.999) and may be mutipled by 1 or -1 before being fed back to the delay. 
+2. "FBack": Input port for the feedback signal. Note that, by default, the output signal is not routed back to the input of the delay. A connection has to be explicitely done. One of the motivation of this module is to allow experimenting with different filters (or possibly other type of processing) inserted in the feedback loop. The FBack signal is scaled by a knob (values between 0 and 0.999) and may be mutipled by 1 or -1 before being fed back to the delay. 
 
 #### Output
 1. "Out": Main output of the delay.

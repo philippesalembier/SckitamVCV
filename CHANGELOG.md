@@ -1,5 +1,5 @@
 #### 1.0.5 (2020-05-31)
-- **WDelay**: initial release of Waveguide delay
+- **WDelay**: Initial release of Waveguide delay
 
 #### 1.0.4 (2020-02-27)
 - **MarkovSeq**: GUI update (States from 1 to 8)
