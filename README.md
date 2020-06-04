@@ -103,11 +103,11 @@ In order to minimize the CPU load, no visual representation of the curve is incl
 ## WDelay <a id="WDelay"> </a>
 ![](doc/WDelay.png)
 
-This module is a simple building block for Digital Waveguide and Karplus-Strong synthesis. It can also be used to create Flanger or Chorus. It is a high precision delay where the output is computed with 3rd order Lagrange interplotation. Beside the main output, a secondary output called "pickup" is also available. It allows one to extract the signal at an arbitrary position of the delay buffer. 
+This module is a simple building block for Digital Waveguide and Karplus-Strong synthesis. It can also be used to create Flanger or Chorus. It is a high precision delay where the output is computed with 3rd order Lagrange interpolation. Beside the main output, a secondary output called "pickup" is also available. It allows one to extract the signal at an arbitrary position of the delay buffer. 
 
 #### Input 
 1. "In": Input port of the delay.  
-2. "FBack": Input port for the feedback signal. Note that, by default, the output signal is not routed back to the input of the delay. A connection has to be explicitely done. One of the motivation of this module is to allow experimenting with different filters (or possibly other type of processing) inserted in the feedback loop. The FBack signal is scaled by a knob (values between 0 and 0.999) and may be mutipled by 1 or -1 before being fed back to the delay. 
+2. "FBack": Input port for the feedback signal. Note that, by default, the output signal is not routed back to the input of the delay. A connection has to be explicitely done. One of the motivation of this module is to allow experimenting with different filters (or possibly other type of processing) inserted in the feedback loop. In the context of waveguide synthesis, another delay may be inserted in the feedback loop. The FBack signal is scaled by a knob (values between 0 and 0.999) and may be mutipled by 1 or -1 before being fed back to the delay. 
 
 #### Output
 1. "Out": Main output of the delay.
@@ -116,7 +116,7 @@ This module is a simple building block for Digital Waveguide and Karplus-Strong 
 #### Delay specification
 The delay can be defined in two different ways that can be selected by the context menu "Delay specification....".
 
-1. Pitch: The Delay knob defines the length of the delay so that a given pitch is produced in the context of a Karplus-Strong synthesis approach. The input port is interpreted as 1V/Oct. 
+1. Pitch: The Delay knob defines the length of the delay so that a given pitch is produced in the context of a Karplus-Strong or waveguide synthesis approach. The input port is interpreted as 1V/Oct. 
 2. Time: In this case, the delay is directly defined in ms (values between 0.1ms up to 1.0s). The modulation is interpreted as: Delay*(1+CVvalue/5).
 
 Finally, the "DAdj" (delay adjustment) is provided for fine tuning of the delay time. It allows one to shorten the delay time by an arbitrary value corresponding to a time between 0 and 16 sample periods. This is particularily useful in the "Pitch" mode. As the feedback is not created by default, the simplest connection involves a cable connecting the output port to the feedback input port. In VCV, this cable implies one sample delay. At high frequencies, this extra sample delay may have a significant impact on the pitch. Therefore, the "DAdj" can be set to -1 to shorten the length of the delay so that the complete scheme "Delay + cable" has exactly the intended length. If filters or other processing blocks are inserted in the feedback loop, their delay should be compensated if a precise Pitch definition is necessary. 
@@ -127,7 +127,7 @@ In the following example:
 
 [Patch available here](doc/Karplus_Strong.vcv)
 
-the feedback loop involves the "Stabile" filter as well as a "DC" blocking filter (They are marked as "Filter 1" and "Filter 2"). The connection involves 3 cables. So the DAdjust should be at least of -3. In fact, a fine tuning with a tuner shows that the filters themeselves add a small amount of extra delay. The final delay adjustment is set to -3.284. A VCO was added to check the tuning of the Karplus-Strong voice compared to a pure sine wave.  
+the feedback loop involves the "Stabile" filter as well as a "DC" blocking filter (They are marked as "Filter 1" and "Filter 2"). The connection involves 3 cables. So the DAdjust should be at least of -3. In fact, a fine tuning with a tuner shows that the filters themselves add a small amount of extra delay. The final delay adjustment is set to -3.284. A VCO was added to check the tuning of the Karplus-Strong voice compared to a pure sine wave.  
 
 
 

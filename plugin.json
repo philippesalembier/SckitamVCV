@@ -53,7 +53,7 @@
     {
       "slug": "WDelay",
       "name": "WaveguideDelay",
-      "description": "High precisioChorus. Building block for waveguide, Karplus-Strong synthesis, Flanger and Chorus",
+      "description": "High precision delay. Building block for waveguide, Karplus-Strong synthesis, Flanger and Chorus",
       "tags": [
         "Delay",
         "VCO",
