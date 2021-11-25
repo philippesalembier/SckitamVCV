@@ -1,6 +1,5 @@
 #include "plugin.hpp"
 
-
 struct PolygonalVCO : Module {
 	enum ParamIds {
 		PITCH_PARAM,
@@ -42,7 +41,6 @@ struct PolygonalVCO : Module {
 	float	xout0[16]={}, xout1[16]={}, xout2[16]={}, xout3[16]={}, xout[16]={};
 	float	yout0[16]={}, yout1[16]={}, yout2[16]={}, yout3[16]={}, yout[16]={};
 	float	h0, h1, h2, h3, d1, d2, d3, d4, d5;
-	int   	panelTheme;
 
 
 	void onReset() override {
@@ -57,8 +55,15 @@ struct PolygonalVCO : Module {
 		configParam(TEETH_PARAM, 0.f, 1.f, 0.f, "Teeth value");
 		configParam(NPOLYAMOUNT_PARAM, -1.f, 1.f, 0.f, "CV amount for N");
 		configParam(TEETHAMOUNT_PARAM, -1.f, 1.f, 0.f, "CV amount for T");
+		
+		configInput(PITCH_INPUT, "Pitch");
+		configInput(FM_INPUT, "FM (LTZ)");
+		configInput(NPOLYCV_INPUT, "Number of polygon sides CV");
+		configInput(TEETHCV_INPUT, "Teeth value CV");
+		configOutput(X_OUTPUT, "VCO X");
+		configOutput(Y_OUTPUT, "VCO Y");
+		
 		onReset();
-		panelTheme = 0;
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -251,8 +256,6 @@ struct PolygonalVCO : Module {
 		json_t* rootJ = json_object();
 		// N Quantization
 		json_object_set_new(rootJ, "nPolyQuant", json_integer(nPolyQuant));
-		// panelTheme
-		json_object_set_new(rootJ, "panelTheme", json_integer(panelTheme));
 		return rootJ;
 	}
 
@@ -261,10 +264,6 @@ struct PolygonalVCO : Module {
 		// N Quantization
 		if (nPolyQuantJ)
 			nPolyQuant = (NPolyQuant) json_integer_value(nPolyQuantJ);
-		// panelTheme
-		json_t *panelThemeJ = json_object_get(rootJ, "panelTheme");
-		if (panelThemeJ)
-			panelTheme = json_integer_value(panelThemeJ);	
 	}
 
 };
@@ -305,20 +304,7 @@ struct NPolyQuantItem : MenuItem {
 
 struct PolygonalVCOWidget : ModuleWidget {
 
-	SvgPanel* darkPanel;
-
-	struct PanelThemeItem : MenuItem {
-		PolygonalVCO *module;
-		int theme;
-		void onAction(const event::Action &e) override {
-			module->panelTheme = theme;
-		}
-		void step() override {
-			rightText = (module->panelTheme == theme) ? "✔" : "";
-		}
-	};	
 	void appendContextMenu(Menu *menu) override {
-		MenuLabel *spacerLabel = new MenuLabel();
 
 		PolygonalVCO *module = dynamic_cast<PolygonalVCO*>(this->module);
 		assert(module);
@@ -330,39 +316,12 @@ struct PolygonalVCOWidget : ModuleWidget {
 		nPolyQuantItem->rightText = RIGHT_ARROW;
 		nPolyQuantItem->module = module;
 		menu->addChild(nPolyQuantItem);
-
-		menu->addChild(spacerLabel);
-		
-		// Panel
-		MenuLabel *themeLabel = new MenuLabel();
-		themeLabel->text = "Panel Theme";
-		menu->addChild(themeLabel);
-
-		PanelThemeItem *lightItem = new PanelThemeItem();
-		lightItem->text = "Light panel";
-		lightItem->module = module;
-		lightItem->theme = 0;
-		menu->addChild(lightItem);
-
-		PanelThemeItem *darkItem = new PanelThemeItem();
-		darkItem->text = "Dark panel";	
-		darkItem->module = module;
-		darkItem->theme = 1;
-		menu->addChild(darkItem);
 	}	
 
 	PolygonalVCOWidget(PolygonalVCO* module) {
 		setModule(module);
 
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/PolygonalVCO.svg")));
-        	if (module) {
-			darkPanel = new SvgPanel();
-			darkPanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/PolygonalVCO_dark.svg")));
-			darkPanel->visible = false;
-			addChild(darkPanel);
-		}
-
-
 
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
@@ -383,14 +342,6 @@ struct PolygonalVCOWidget : ModuleWidget {
 
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(8.677, 115.516)), module, PolygonalVCO::X_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(22.457, 115.516)), module, PolygonalVCO::Y_OUTPUT));
-	}
-
-	void step() override {
-		if (module) {
-			panel->visible = ((((PolygonalVCO*)module)->panelTheme) == 0);
-			darkPanel->visible  = ((((PolygonalVCO*)module)->panelTheme) == 1);
-		}
-		Widget::step();
 	}
 };
 

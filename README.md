@@ -4,16 +4,14 @@ This page provides some information about the following modules:
 
 * **[2DRotation](#2DRotation)**: Utility, 2D Rotation of 2 input signals
 * **[2DAffine](#2DAffine)**: Utility, 2D Affine Transform of 2 intput signals
+* **[FIFOQueue](#FIFOQueue)**: First-in First-out queue
 * **[MarkovSeq](#MarkovSeq)**: Sequencer & Switch, 8 steps sequencers based on Markov chain
 * **[PolygonalVCO](#PolygonalVCO)**: VCO based on the paper: C. Hohnerlein, M. Rest, and J. O. Smith III, “Continuousorder polygonal waveform synthesis,” in Proceedings of theInternational Computer Music Conference, Utrecht, Netherlands, 2016.
 * **[WDelay](#WDelay)**: High precision delay line. Building block for Waveguide and Karplus-Strong synthesis as well as Flanger or Chorus effects. 
 
 
-![](doc/SckitamVCV.png)
+![](doc/SckitamVCV_v2.png)
 
-![](doc/SckitamVCV_dark.png)
-
-The context menu allows one to choose between light or dark panel (Currently not available for the WDelay). 
 
 ## 2DRotation <a id="2DRotation"> </a>
 ![](doc/2DRotation.png)
@@ -44,6 +42,23 @@ Out2 = sin(\theta) (X + Sx Y) + cos(\theta) (Sy X + Y)
 The shearing creates horizontal and vertical deformations of the curve in the 2D plane. Note that the shearing can modify very significantly the signal dinamic. As a result, a (parabolic) saturator has been introduced at the output.  
 
 X & Y input and output are polyphonic. The actual number of channels is defined by the X input port.
+
+## FIFOQueue <a id="FIFOQueue"> </a>
+![](doc/FIFOQueue.png)
+
+Triple First-in First-out Queue. 
+
+**TrigW**: An input trigger stores the content of any of the three input available at the **In** ports in the queue. The current number of items stored in the queue is shown on the right. The maximum number of items that can be stored is 128. When this value is reached any TrigW is ignored. 
+
+**TrigR**: An input trigger extracts the first available item in each queue and makes it available at the **Out** ports. The number of item in the queue is decreased by one. If the queue is empty, nothing happens (in particular no **TrigOut** is generated).
+
+**Loop**: A positive value will activate the looping. Any value extracted from the queue will be stored back as last item in the queue. 
+
+**Clear**: A trigger will empty the three queues. 
+
+**TrigOut**: Each time an item is extracted from the queue, a trigger is generated at this input. Note: If the queue is empty and one tries to read an item, nothing happens and no **TrigOut** is generated.
+
+**O**: Output 10v (or 0v) if the queue is empty (or not). 
 
 ## MarkovSeq <a id="MarkovSeq"> </a>
 ![](doc/MarkovSeq.png)

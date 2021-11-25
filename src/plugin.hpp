@@ -14,3 +14,4 @@ extern Model* model_2DAffine;
 extern Model* modelMarkovSeq;
 extern Model* modelPolygonalVCO;
 extern Model* modelWDelay;
+extern Model* modelFIFOQueue;

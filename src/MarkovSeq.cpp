@@ -64,38 +64,53 @@ struct MarkovSeq : Module {
 	
 	MarkovSeq() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(STEP_PARAM,  0.f, 10.f, 0.f, "Manual Step");
+		//configParam(STEP_PARAM,  0.f, 10.f, 0.f, "Manual Step");
+		configButton(STEP_PARAM, "Manual Step");
 		configParam(SCALE_PARAM, 0.f,  1.f, 1.f, "Output Gain");
 		configParam(SLEW_PARAM, 0.f,  0.999f, 0.f, "Slew");
 		for (i = 0; i < 8; i++)
-			configParam(VAL_PARAMS + i, -10.f, 10.f, 0.f, string::f("Val %d", i + 1));
+			configParam(VAL_PARAMS + i, -10.f, 10.f, 0.f, string::f("Value for State %d", i + 1));
 		for (i = 0; i < 8; i++)
-			configParam(FORCE_PARAMS + i, 0.f, 10.f, 0.f, string::f("Force State %d", i));
+			//configParam(FORCE_PARAMS + i, 0.f, 10.f, 0.f, string::f("Force State %d", i));
+			configButton(FORCE_PARAMS + i, string::f("Force next State %d", i + 1));
 		for (i = 0; i < 8; i++){
-			configParam(TO_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition to S%d", i));
-			configParam(TO_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition to S%d to 0.5", i));
-			configParam(FROM_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition from S%d", i));
-			configParam(FROM_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition from S%d to 0.5", i));
+			configParam(TO_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition to S%d", i+1));
+			configParam(TO_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition to S%d to 0.5", i+1));
+			configParam(FROM_S_OFF_PARAMS + i, 0.f, 1.f, 0.f, string::f("Remove transition from S%d", i+1));
+			configParam(FROM_S_ON_PARAMS + i, 0.f, 1.f, 0.f, string::f("Set transition from S%d to 0.5", i+1));
 		}	
 		for (i = 0; i < 8; i++) {
-			configParam(P0_PARAMS + i, 0.f, 1.f, 0.f, string::f("P0->%d", i));
-			configParam(P1_PARAMS + i, 0.f, 1.f, 0.f, string::f("P1->%d", i));
-			configParam(P2_PARAMS + i, 0.f, 1.f, 0.f, string::f("P2->%d", i));
-			configParam(P3_PARAMS + i, 0.f, 1.f, 0.f, string::f("P3->%d", i));
-			configParam(P4_PARAMS + i, 0.f, 1.f, 0.f, string::f("P4->%d", i));
-			configParam(P5_PARAMS + i, 0.f, 1.f, 0.f, string::f("P5->%d", i));
-			configParam(P6_PARAMS + i, 0.f, 1.f, 0.f, string::f("P6->%d", i));
-			configParam(P7_PARAMS + i, 0.f, 1.f, 0.f, string::f("P7->%d", i));
+			configParam(P0_PARAMS + i, 0.f, 1.f, 0.f, string::f("P1->%d", i+1));
+			configParam(P1_PARAMS + i, 0.f, 1.f, 0.f, string::f("P2->%d", i+1));
+			configParam(P2_PARAMS + i, 0.f, 1.f, 0.f, string::f("P3->%d", i+1));
+			configParam(P3_PARAMS + i, 0.f, 1.f, 0.f, string::f("P4->%d", i+1));
+			configParam(P4_PARAMS + i, 0.f, 1.f, 0.f, string::f("P5->%d", i+1));
+			configParam(P5_PARAMS + i, 0.f, 1.f, 0.f, string::f("P6->%d", i+1));
+			configParam(P6_PARAMS + i, 0.f, 1.f, 0.f, string::f("P7->%d", i+1));
+			configParam(P7_PARAMS + i, 0.f, 1.f, 0.f, string::f("P8->%d", i+1));
+		
+			configInput(IN_INPUTS + i, string::f("State %d",i + 1));
+			configInput(GFORCE_INPUTS + i, string::f("Trigger to force next State to %d,",i+1));
+			configOutput(TRIGGER_STATE + i, string::f("State %d trigger",i+1));
+			
+			configLight(CUR_LIGHTS + i, string::f("Current State %d",i+1));
+			configLight(NEXT_LIGHTS + i, string::f("Next State %d",i+1));
 		}
+		
+		configOutput(OUT_OUTPUT, "Output value of the current state,");
+		configOutput(STATE_OUTPUT, "Current state,");
+		
 		// Intialize such that the sequencer moves as a regular sequencer in the forward direction
-		configParam(P0_PARAMS + 1, 0.f, 1.f, 0.5f, string::f("P0->%d", 1));
-		configParam(P1_PARAMS + 2, 0.f, 1.f, 0.5f, string::f("P0->%d", 2));
-		configParam(P2_PARAMS + 3, 0.f, 1.f, 0.5f, string::f("P0->%d", 3));
-		configParam(P3_PARAMS + 4, 0.f, 1.f, 0.5f, string::f("P0->%d", 4));
-		configParam(P4_PARAMS + 5, 0.f, 1.f, 0.5f, string::f("P0->%d", 5));
-		configParam(P5_PARAMS + 6, 0.f, 1.f, 0.5f, string::f("P0->%d", 6));
-		configParam(P6_PARAMS + 7, 0.f, 1.f, 0.5f, string::f("P0->%d", 7));
-		configParam(P7_PARAMS + 0, 0.f, 1.f, 0.5f, string::f("P0->%d", 0));
+		configParam(P0_PARAMS + 1, 0.f, 1.f, 0.5f, string::f("P1->%d", 2));
+		configParam(P1_PARAMS + 2, 0.f, 1.f, 0.5f, string::f("P2->%d", 3));
+		configParam(P2_PARAMS + 3, 0.f, 1.f, 0.5f, string::f("P3->%d", 4));
+		configParam(P3_PARAMS + 4, 0.f, 1.f, 0.5f, string::f("P4->%d", 5));
+		configParam(P4_PARAMS + 5, 0.f, 1.f, 0.5f, string::f("P5->%d", 6));
+		configParam(P5_PARAMS + 6, 0.f, 1.f, 0.5f, string::f("P6->%d", 7));
+		configParam(P6_PARAMS + 7, 0.f, 1.f, 0.5f, string::f("P7->%d", 8));
+		configParam(P7_PARAMS + 0, 0.f, 1.f, 0.5f, string::f("P8->%d", 1));
+		
+
 
 		for (i = 0; i < 8; i++) {
 			clickFilters[i].rise = 400.f; // Hz
@@ -108,49 +123,49 @@ struct MarkovSeq : Module {
 	void process(const ProcessArgs& args) override {
 
 		// Check if a trigger defines the NextState
-		bool FState0 = (params[FORCE_PARAMS].getValue() + inputs[GFORCE_INPUTS].getVoltage()) > 1.0f;
+		bool FState0 = (params[FORCE_PARAMS].getValue() + inputs[GFORCE_INPUTS].getVoltage()) >= 1.0f;
 		if (state0Trigger.process(FState0)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 0;
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
-		bool FState1 = (params[FORCE_PARAMS+1].getValue() + inputs[GFORCE_INPUTS+1].getVoltage()) > 1.0f;
+		bool FState1 = (params[FORCE_PARAMS+1].getValue() + inputs[GFORCE_INPUTS+1].getVoltage()) >= 1.0f;
 		if (state1Trigger.process(FState1)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 1;
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
-		bool FState2 = (params[FORCE_PARAMS+2].getValue() + inputs[GFORCE_INPUTS+2].getVoltage()) > 1.0f;
+		bool FState2 = (params[FORCE_PARAMS+2].getValue() + inputs[GFORCE_INPUTS+2].getVoltage()) >= 1.0f;
 		if (state2Trigger.process(FState2)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 2;
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
-		bool FState3 = (params[FORCE_PARAMS+3].getValue() + inputs[GFORCE_INPUTS+3].getVoltage()) > 1.0f;
+		bool FState3 = (params[FORCE_PARAMS+3].getValue() + inputs[GFORCE_INPUTS+3].getVoltage()) >= 1.0f;
 		if (state3Trigger.process(FState3)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 3;
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
-		bool FState4 = (params[FORCE_PARAMS+4].getValue() + inputs[GFORCE_INPUTS+4].getVoltage()) > 1.0f;
+		bool FState4 = (params[FORCE_PARAMS+4].getValue() + inputs[GFORCE_INPUTS+4].getVoltage()) >= 1.0f;
 		if (state4Trigger.process(FState4)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 4;
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
-		bool FState5 = (params[FORCE_PARAMS+5].getValue() + inputs[GFORCE_INPUTS+5].getVoltage()) > 1.0f;
+		bool FState5 = (params[FORCE_PARAMS+5].getValue() + inputs[GFORCE_INPUTS+5].getVoltage()) >= 1.0f;
 		if (state5Trigger.process(FState5)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 5;
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
-		bool FState6 = (params[FORCE_PARAMS+6].getValue() + inputs[GFORCE_INPUTS+6].getVoltage()) > 1.0f;
+		bool FState6 = (params[FORCE_PARAMS+6].getValue() + inputs[GFORCE_INPUTS+6].getVoltage()) >= 1.0f;
 		if (state6Trigger.process(FState6)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 6;
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(1.f);
 		}
-		bool FState7 = (params[FORCE_PARAMS+7].getValue() + inputs[GFORCE_INPUTS+7].getVoltage()) > 1.0f;
+		bool FState7 = (params[FORCE_PARAMS+7].getValue() + inputs[GFORCE_INPUTS+7].getVoltage()) >= 1.0f;
 		if (state7Trigger.process(FState7)) {
 			lights[NEXT_LIGHTS + NextState   ].setBrightness(0.f);
  			NextState = 7;
@@ -239,7 +254,7 @@ struct MarkovSeq : Module {
 		}
 
 		// Process new clock event
-		bool step = (params[STEP_PARAM].getValue() + inputs[CLOCK_INPUT].getVoltage()) > 1.0f;
+		bool step = (params[STEP_PARAM].getValue() + inputs[CLOCK_INPUT].getVoltage()) >= 1.0f;
 		lights[STEP_PARAM].setBrightness(step);
 
 		if (stepTrigger.process(step)) {
@@ -362,8 +377,6 @@ struct MarkovSeq : Module {
 		json_t* rootJ = json_object();
 		// All probabilites to 0
 		json_object_set_new(rootJ, "zeroSum", json_integer(zeroSum));
-		// panelTheme
-		json_object_set_new(rootJ, "panelTheme", json_integer(panelTheme));
 		return rootJ;
 	}
 
@@ -372,10 +385,6 @@ struct MarkovSeq : Module {
 		// All probabilities to 0
 		if (zeroSumJ)
 			zeroSum = (ZeroSum) json_integer_value(zeroSumJ);
-		// panelTheme
-		json_t *panelThemeJ = json_object_get(rootJ, "panelTheme");
-		if (panelThemeJ)
-			panelTheme = json_integer_value(panelThemeJ);	
 	}
 
 };
@@ -397,7 +406,9 @@ struct MarkovSeqVUKnob : SliderKnob {
 		Rect r = box.zeroPos().grow(margin.neg());
 
 		//int channels = module ? module->lastChannels : 1;
-		float value = paramQuantity ? paramQuantity->getValue() : 1.f;
+		// float value = paramQuantity ? paramQuantity->getValue() : 1.f;   From v1
+		engine::ParamQuantity* pq = getParamQuantity();
+		float value = pq ? pq->getValue() : 1.f;
 
 		// Segment value
 		nvgBeginPath(args.vg);
@@ -475,20 +486,8 @@ struct ZeroSumItem : MenuItem {
 
 struct MarkovSeqWidget : ModuleWidget {
 
-	SvgPanel* darkPanel;
 
-	struct PanelThemeItem : MenuItem {
-		MarkovSeq *module;
-		int theme;
-		void onAction(const event::Action &e) override {
-			module->panelTheme = theme;
-		}
-		void step() override {
-			rightText = (module->panelTheme == theme) ? "✔" : "";
-		}
-	};	
 	void appendContextMenu(Menu *menu) override {
-		MenuLabel *spacerLabel = new MenuLabel();
 
 		MarkovSeq *module = dynamic_cast<MarkovSeq*>(this->module);
 		assert(module);
@@ -501,24 +500,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		zeroSumItem->rightText = RIGHT_ARROW;
 		zeroSumItem->module = module;
 		menu->addChild(zeroSumItem);
-		
-		// Panel
-		menu->addChild(spacerLabel);
-		MenuLabel *themeLabel = new MenuLabel();
-		themeLabel->text = "Panel Theme";
-		menu->addChild(themeLabel);
-
-		PanelThemeItem *lightItem = new PanelThemeItem();
-		lightItem->text = "Light panel";
-		lightItem->module = module;
-		lightItem->theme = 0;
-		menu->addChild(lightItem);
-
-		PanelThemeItem *darkItem = new PanelThemeItem();
-		darkItem->text = "Dark panel";	
-		darkItem->module = module;
-		darkItem->theme = 1;
-		menu->addChild(darkItem);
 	}	
 
 
@@ -526,12 +507,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		setModule(module);
 
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/MarkovSeq.svg")));
-       		if (module) {
-			darkPanel = new SvgPanel();
-			darkPanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/MarkovSeq_dark.svg")));
-			darkPanel->visible = false;
-			addChild(darkPanel);
-		}
 
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
@@ -778,13 +753,6 @@ struct MarkovSeqWidget : ModuleWidget {
 		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(125.45, 104.523)), module, MarkovSeq::NEXT_LIGHTS + 6));
 		addChild(createLightCentered<LargeLight<RedLight>>(mm2px(Vec(117.15, 118.19)), module, MarkovSeq::CUR_LIGHTS + 7));
 		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(125.45, 118.19)), module, MarkovSeq::NEXT_LIGHTS + 7));
-	}
-	void step() override {
-		if (module) {
-			panel->visible = ((((MarkovSeq*)module)->panelTheme) == 0);
-			darkPanel->visible  = ((((MarkovSeq*)module)->panelTheme) == 1);
-		}
-		Widget::step();
 	}
 
 //	void appendContextMenu(Menu* menu) override {

@@ -19,13 +19,13 @@ ScButton::ScButton(const char* offSvgPath, const char* onSvgPath) {
 }
 
 void ScButton::onDragStart(const event::DragStart& e) {
-	if (paramQuantity) {
+	if (getParamQuantity()) {
 		_svgWidget->setSvg(_frames[1]);
-		if (paramQuantity->getValue() >= paramQuantity->getMaxValue()) {
-			paramQuantity->setValue(paramQuantity->getMinValue());
+		if (getParamQuantity()->getValue() >= getParamQuantity()->getMaxValue()) {
+			getParamQuantity()->setValue(getParamQuantity()->getMinValue());
 		}
 		else {
-			paramQuantity->setValue(paramQuantity->getValue() + 1.0);
+			getParamQuantity()->setValue(getParamQuantity()->getValue() + 1.0);
 		}
 	}
 }

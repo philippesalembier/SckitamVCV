@@ -1,3 +1,7 @@
+#### 2.0.0 (2021-10-31)
+- Update for VCV Rack v2
+- **FIFOQueue**: Triple First-in First-out queue
+
 #### 1.0.5 (2020-05-31)
 - **WDelay**: Initial release of Waveguide delay
 

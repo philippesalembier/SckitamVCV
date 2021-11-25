@@ -52,7 +52,17 @@ struct WDelay : Module {
 		configParam(PICKUP_PARAM, 0.f, 1.f, 0.5f, "Pickup position");
 		configParam(PICKUPMOD_PARAM, -1.f, 1.f, 0.f, "Pickup modulation amount");
 		configParam(FBACK_PARAM, 0.f, 0.999f, 0.f, "Feedback amount");
-		configParam(PM_PARAM, 0.f, 1.f, 1.f, "Plus or Minus");
+		//configParam(PM_PARAM, 0.f, 1.f, 1.f, "Plus or Minus");
+		configButton(PM_PARAM, "Plus or Minus");
+
+		configInput(PITCH_INPUT, "Delay value");
+		configInput(PICKUPMOD_INPUT, "Pickup position CV");
+		configInput(IN_INPUT, "Signal");
+		configInput(FBACK_INPUT, "Feedback");
+		configOutput(OUT_OUTPUT, "Delay");
+		configOutput(PICKUP_OUTPUT, "Pickup");
+
+
 	}
 
 	void process(const ProcessArgs& args) override {
