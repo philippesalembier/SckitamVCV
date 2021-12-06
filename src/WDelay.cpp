@@ -61,8 +61,8 @@ struct WDelay : Module {
 		configInput(FBACK_INPUT, "Feedback");
 		configOutput(OUT_OUTPUT, "Delay");
 		configOutput(PICKUP_OUTPUT, "Pickup");
-
-
+		configBypass(IN_INPUT, OUT_OUTPUT);
+		configBypass(IN_INPUT, PICKUP_OUTPUT);
 	}
 
 	void process(const ProcessArgs& args) override {

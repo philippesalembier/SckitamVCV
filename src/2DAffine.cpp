@@ -70,6 +70,8 @@ struct _2DAffine : Module {
 		configInput(CVSHEARY_INPUT, "Shearing CV (Vertical)");
 		configOutput(OUT1_OUTPUT, "Output 1");
 		configOutput(OUT2_OUTPUT, "Output 2");
+		configBypass(IN1_INPUT, OUT1_OUTPUT);
+		configBypass(IN2_INPUT, OUT2_OUTPUT);
 
 	}
 
