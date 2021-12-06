@@ -1,3 +1,6 @@
+#### 2.0.1 (2021-12-06)
+- Added ByPass functonality for 2DRotation, 2DAffine and WDelay
+
 #### 2.0.0 (2021-10-31)
 - Update for VCV Rack v2
 - **FIFOQueue**: Triple First-in First-out queue
